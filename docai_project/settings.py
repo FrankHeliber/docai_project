@@ -28,6 +28,8 @@ SECRET_KEY = 'django-insecure-@@@oflk*0q0+g(v(9l6u)*qzoub2s1h1^wj^p83c8zb6*+jh%=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+CSRF_TRUSTED_ORIGINS = ['https://docai-project.onrender.com']
+
 ALLOWED_HOSTS = ['docai-project.onrender.com']
 
 
