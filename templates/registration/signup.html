@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}Registro{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card p-4">
+                <div class="card-body">
+                    <div class="card-body text-center">
+                        <img src="{% static 'img/registro-icon.png' %}" alt="Avatar de usuario" class="rounded-circle shadow-sm" width="70" height="70">
+                    </div>
+                    <h2 class="fw-bold text-primary text-center mt-3">Crear cuenta</h2>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        {% for field in form %}
+                            <div class="mb-3 icon-input">
+                                {% if field.name == 'username' %}
+                                    <i class="bi bi-person"></i>
+                                {% elif field.name == 'email' %}
+                                    <i class="bi bi-envelope"></i>
+                                {% elif field.name == 'password1' or field.name == 'password2' %}
+                                    <i class="bi bi-lock"></i>
+                                {% endif %}
+                                {{ field.label_tag }}
+                                {{ field|add_class:"form-control" }}
+                                {% if field.errors %}
+                                    <div class="text-danger small">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+
+                        <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+                    </form>
+
+                    <p class="text-center mt-3 form-subtext">
+                        ¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

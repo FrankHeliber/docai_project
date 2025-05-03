@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ artefacto.titulo }} | {{ artefacto.get_tipo_display }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-5">
+        <h2 class="text-primary">{{ artefacto.titulo }}</h2>
+        <h5 class="text-muted mb-3">{{ artefacto.get_tipo_display }}</h5>
+        <div class="p-4 bg-light rounded shadow-sm">
+            <p class="fs-5" style="white-space: pre-line;">{{ artefacto.contenido }}</p>
+        </div>
+    </div>
+    
+    <div class="mt-5">
+        <h4 class="mb-4">Evaluaciones de Coherencia</h4>
+
+        {% if evaluaciones %}
+            <div class="row">
+                {% for eval in evaluaciones %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">Evaluación {{ forloop.counter }}</h5>
+                                <p class="card-text">
+                                    <strong>BLEU:</strong> {{ eval.puntuacion_bleu|default:"N/A" }}<br>
+                                    <strong>ROUGE:</strong> {{ eval.puntuacion_rouge|default:"N/A" }}<br>
+                                    <strong>Puntuación Manual:</strong> {{ eval.puntuacion_manual|default:"N/A" }} / 5<br>
+                                    {% if eval.comentarios %}
+                                        <strong>Comentarios:</strong> {{ eval.comentarios }}
+                                    {% endif %}
+                                </p>
+                                <small class="text-muted">Evaluado en: {{ eval.evaluado_en|date:"d/m/Y H:i" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">No hay evaluaciones de coherencia disponibles aún.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

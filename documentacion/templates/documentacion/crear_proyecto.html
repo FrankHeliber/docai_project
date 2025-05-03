@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}Crear Proyecto{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        background: linear-gradient(to right, #dfe9f3, #ffffff);
+    }
+
+    .card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .form-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: #34495e;
+    }
+
+    .form-control {
+        border-radius: 12px;
+    }
+
+    .btn-primary {
+        border-radius: 12px;
+        background-color: #3498db;
+        font-weight: 600;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #2980b9;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card p-4">
+                <div class="card-body">
+                    <h4 class="form-title text-center mb-4">Crear Nuevo Proyecto</h4>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        {% for field in form %}
+                            <div class="mb-3">
+                                {{ field.label_tag }}
+                                {{ field|add_class:"form-control" }}
+                                {% if field.errors %}
+                                    <div class="text-danger small">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success"> Guardar Proyecto </button>
+
+                            <a href="{% url 'dashboard' %}" class="btn btn-danger"> cancelar </a>
+                            
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

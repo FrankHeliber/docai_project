@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+    <meta charset="UTF-8">
+    
+    <title>{% block title %}DocAI{% endblock %} </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!--<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <!-- Estilos personalizados -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<!-- Navbar moderna -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold text-primary" href="{% url 'home' %}">DocAI</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Panel</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Cerrar sesión</a></li>
+                {% else %}
+                    <li class="nav-item"><a class="btn btn-primary ms-2" href="{% url 'login' %}">Iniciar sesión</a></li>
+                    <li class="nav-item"><a class="btn btn-primary ms-2" href="{% url 'signup' %}">Registrarse</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Contenido principal -->
+<main class="flex-grow-1 pt-5 mt-5">
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+<!-- Footer elegante -->
+<footer class="bg-light text-center text-muted py-4 mt-auto border-top">
+    <div class="container">
+        <p class="mb-1">&copy; 2025 DocAI. Todos los derechos reservados.</p>
+        <small class="d-block">Desarrollado por Frank | Ingeniería de computacion y sistemas</small>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script> -->
+</body>
+</html>

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ proyecto.nombre }} | Detalle del Proyecto{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="text-primary">{{ proyecto.nombre }}</h2>
+            <p class="text-muted">{{ proyecto.descripcion }}</p>
+        </div>
+        <div>
+        <a href="{% url 'crear_artefacto' proyecto.id %}" class="btn btn-success">+ Nuevo Artefacto</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-warning">regreso</a>
+        </div>
+    </div>
+
+    {% if artefactos %}
+        <div class="list-group">
+            {% for artefacto in artefactos %}
+                <a href="{% url 'ver_artefacto' artefacto.id %}" class="list-group-item list-group-item-action">
+                    <strong>{{ artefacto.get_tipo_display }}</strong>: {{ artefacto.titulo }}
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info mt-3">
+            Este proyecto aún no tiene artefactos generados.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
