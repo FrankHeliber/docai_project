@@ -12,14 +12,11 @@ class Project(models.Model):
 
 class Artefacto(models.Model):
     TIPOS = [
-        ('REQ', 'Requisitos'),
-        ('CU', 'Casos de Uso'),
-        ('PROT', 'Prototipos'),
-        ('PLAN', 'Plan de Proyecto'),
-        ('DOC', 'Documentación Técnica'),
-        ('REP', 'Reporte de Progreso'),
-        ('MAN', 'Manual de Usuario'),
-        ('MANT', 'Documentación de Mantenimiento'),
+        ('AREQ', 'Análisis Requisitos'),
+        ('DISE', 'Diseño'),
+        ('DEVS', 'Desarrollo'),
+        ('PRUE', 'Pruebas'),
+        ('DESP', 'Despliegue'),
     ]
 
     proyecto = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="artefactos")
@@ -42,3 +39,19 @@ class EvaluacionCoherencia(models.Model):
 
     def __str__(self):
         return f"Evaluación de {self.artefacto.titulo}"
+    
+class Fase(models.Model):
+    proyecto = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="fases")
+    nombre = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.nombre} ({self.proyecto.nombre})"
+
+
+class SubArtefacto(models.Model):
+    fase = models.ForeignKey(Fase, on_delete=models.CASCADE, related_name="subartefactos")
+    nombre = models.CharField(max_length=100)
+    enlace = models.URLField(blank=True)  # Si lo usarás como enlace externo
+
+    def __str__(self):
+        return f"{self.nombre} ({self.fase.nombre})"

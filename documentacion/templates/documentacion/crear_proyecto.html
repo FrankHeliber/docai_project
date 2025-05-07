@@ -43,13 +43,12 @@
     }
 </style>
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card p-4">
-                <div class="card-body">
-                    <h4 class="form-title text-center mb-4">Crear Nuevo Proyecto</h4>
-
+<div class="container mt-1" style="max-width: 600px;">
+    <div class="card shadow">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4 class="mb-0">Crear Nuevo Proyecto</h4>
+                    </div>
+        <div class="card-body">
                     <form method="post" novalidate>
                         {% csrf_token %}
 
@@ -69,16 +68,15 @@
                             </div>
                         {% endfor %}
                         <div class="mt-3">
-                            <button type="submit" class="btn btn-success"> Guardar Proyecto </button>
+                            <button type="submit" class="btn btn-outline-success btn-sm">✅Guardar Proyecto </button>
 
-                            <a href="{% url 'dashboard' %}" class="btn btn-danger"> cancelar </a>
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-danger btn-sm">❌cancelar </a>
                             
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
+        </div>      
+
     </div>
-</div>
+</div>                    
 {% endblock %}
 

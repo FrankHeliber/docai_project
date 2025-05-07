@@ -9,10 +9,11 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('proyecto/nuevo/', views.crear_proyecto, name='crear_proyecto'),
     path('proyectos/', views.dashboard, name='dashboard'),
-    path('logout/', views.cerrar_sesion, name='logout'),  # 👈 importante
+    path('logout/', views.cerrar_sesion, name='logout'),  # 👈 importante para logueo
     path('proyecto/<int:proyecto_id>/', views.detalle_proyecto, name='detalle_proyecto'),
     path('proyecto/<int:proyecto_id>/artefacto/nuevo/', views.crear_artefacto, name='crear_artefacto'),
     path('artefacto/<int:artefacto_id>/', views.ver_artefacto, name='ver_artefacto'),
     path('proyecto/<int:pk>/editar/', views.editar_proyecto, name='editar_proyecto'), # este codigo se agrego para el editar
-
+    path('proyecto/<int:proyecto_id>/eliminar/', views.eliminar_proyecto, name='eliminar_proyecto'), # PARA ELIMINAR PROYECTO
+    
 ]

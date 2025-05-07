@@ -4,28 +4,45 @@
 
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-primary">{{ proyecto.nombre }}</h2>
             <p class="text-muted">{{ proyecto.descripcion }}</p>
         </div>
         <div>
-        <a href="{% url 'crear_artefacto' proyecto.id %}" class="btn btn-success">+ Nuevo Artefacto</a>
-        <a href="{% url 'dashboard' %}" class="btn btn-warning">regreso</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-warning btn-sm">🔙 Regresar</a>
         </div>
     </div>
 
-    {% if artefactos %}
-        <div class="list-group">
-            {% for artefacto in artefactos %}
-                <a href="{% url 'ver_artefacto' artefacto.id %}" class="list-group-item list-group-item-action">
-                    <strong>{{ artefacto.get_tipo_display }}</strong>: {{ artefacto.titulo }}
-                </a>
-            {% endfor %}
+    {% if fases %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for fase in fases %}
+        <div class="col">
+            <div class="card h-100 shadow-lg border-info">
+                <div class="card-header bg-info text-white text-center">
+                    <h5 class="card-title m-0">{{ fase.nombre }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if fase.subartefactos.all %}
+                        {% for sub in fase.subartefactos.all %}
+                            <div class="d-grid gap-2 mb-2">
+                                <a href="{% url 'crear_artefacto' proyecto.id %}?subartefacto={{ sub.nombre }}" class="btn btn-outline-info btn-sm">
+                                    {{ sub.nombre }}
+                                </a>
+                                                            
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No hay subartefactos definidos.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
+        {% endfor %}
+
     {% else %}
-        <div class="alert alert-info mt-3">
-            Este proyecto aún no tiene artefactos generados.
+        <div class="alert alert-info mt-4">
+            Este proyecto aún no tiene fases definidas. Puedes agregar artefactos manualmente.
         </div>
     {% endif %}
 </div>
