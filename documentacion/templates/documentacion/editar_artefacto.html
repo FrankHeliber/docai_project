@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Editar artefacto | DocAI{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0 text-center">✏️ Editar contenido del artefacto</h4>
+            <small class="d-block text-center">Proyecto: <strong>{{ artefacto.proyecto.nombre }}</strong></small>
+        </div>
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="{{ form.contenido.id_for_label }}" class="form-label">Contenido</label>
+                    {{ form.contenido|add_class:"form-control" }}
+                    {% if form.contenido.errors %}
+                        <div class="text-danger small">{{ form.contenido.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-outline-success btn-sm">💾 Guardar Cambios</button>
+                    <a href="{% url 'ver_artefacto' artefacto.id %}" class="btn btn-secondary">❌ Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

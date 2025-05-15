@@ -20,14 +20,24 @@ class Artefacto(models.Model):
     ]
 
     proyecto = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="artefactos")
+    fase = models.ForeignKey("Fase", on_delete=models.CASCADE, related_name="artefactos", null=True, blank=True)
+    subartefacto = models.ForeignKey("SubArtefacto", on_delete=models.CASCADE, related_name="artefactos", null=True, blank=True)
+
     tipo = models.CharField(max_length=10, choices=TIPOS)
     titulo = models.CharField(max_length=100)
     contenido = models.TextField()
     generado_por_ia = models.BooleanField(default=True)
     creado = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        if self.subartefacto and not self.fase:
+            self.fase = self.subartefacto.fase
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.titulo} ({self.get_tipo_display()})"
+
+
 
 class EvaluacionCoherencia(models.Model):
     artefacto = models.ForeignKey(Artefacto, on_delete=models.CASCADE, related_name="evaluaciones")
@@ -55,3 +65,4 @@ class SubArtefacto(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.fase.nombre})"
+    

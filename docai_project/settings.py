@@ -46,16 +46,17 @@ INSTALLED_APPS = [
     'documentacion',
     # Apps de terceros
     'crispy_forms',
-    'crispy_bootstrap4',
+    'crispy_bootstrap5',
     'django.contrib.sites',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'widget_tweaks',  # <-- asegúrate de que esté aquí
+    'rest_framework',
     
 ]
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
-CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

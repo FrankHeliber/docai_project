@@ -20,22 +20,11 @@
         <div class="card-body">
             <h5 class="card-title text-muted">Contenido del Artefacto</h5>
             <hr>
-            <pre class="text-wrap" style="white-space: pre-wrap;">{{ artefacto.contenido }}</pre>
+            <div class="p-4 bg-light rounded shadow-sm">
+                <pre class="fs-6" style="white-space: pre-line;">{{ artefacto.contenido }}</pre>
+            </div>
+            
         </div>
     </div>
 </div>
-
-<!-- codigo nuevo -->
-{% endblock %}
-
-{% block content %}
-<h2>{{ artefacto.titulo }}</h2>
-
-{% if "```mermaid" in artefacto.contenido %}
-    <div class="mermaid">
-        {{ artefacto.contenido|safe|slice:"10:-3" }}
-    </div>
-{% else %}
-    <pre>{{ artefacto.contenido }}</pre>
-{% endif %}
 {% endblock %}

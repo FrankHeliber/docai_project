@@ -26,9 +26,13 @@
                     {% if fase.subartefactos.all %}
                         {% for sub in fase.subartefactos.all %}
                             <div class="d-grid gap-2 mb-2">
-                                <a href="{% url 'crear_artefacto' proyecto.id %}?subartefacto={{ sub.nombre }}" class="btn btn-outline-info btn-sm">
+                                <a href="{% url 'generar_artefacto' proyecto.id sub.nombre %}" class="btn btn-outline-info btn-sm">
                                     {{ sub.nombre }}
                                 </a>
+
+                                <!--<a href="{% url 'crear_artefacto' proyecto.id %}?subartefacto={{ sub.nombre }}" class="btn btn-outline-info btn-sm">
+                                    {{ sub.nombre }}
+                                </a>-->
                                                             
                             </div>
                         {% endfor %}
@@ -46,4 +50,20 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalSubartefacto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content border-primary shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="tituloSubartefacto">Subartefacto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="contenidoSubartefacto" style="white-space: pre-wrap;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
