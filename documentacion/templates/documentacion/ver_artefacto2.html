@@ -26,7 +26,7 @@
 </div>
 {% if artefacto.tipo in "caso_uso diagrama_clases entidad_relacion colaboracion actividades c4" %}
     <div class="card p-3 my-4 shadow">
-        <h5 class="text-center text-muted">🧩 Diagrama generado</h5>
+        <h5 class="text-center text-muted">🧩 Diagrama generado con Mermaid</h5>
         <div class="mermaid">
             {{ artefacto.contenido|safe }}
         </div>
@@ -37,9 +37,5 @@
         <pre>{{ artefacto.contenido }}</pre>
     </div>
 {% endif %}
-            <script type="module">
-                import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-                mermaid.initialize({ startOnLoad: true });
-            </script>
 
 {% endblock %}

@@ -53,10 +53,13 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'widget_tweaks',  # <-- asegúrate de que esté aquí
     'rest_framework',
-    
+    'mermaid',
 ]
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+MERMAID_VERSION = '0.1.0'  # esta es la version que esta instalado
+MERMAID_THEME = 'neutral'
+MERMAID_USE_CDN = True
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

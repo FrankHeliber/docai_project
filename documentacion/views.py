@@ -1,18 +1,52 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Project, Artefacto, Fase, SubArtefacto
-from .forms import ProjectForm, ArtefactoForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout
-from core.ia import generar_subartefacto_con_ia, generar_contenido_gemini
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
-from core.mermaid import generar_diagrama_mermaid
+from django.contrib import messages
+from .models import Project, Artefacto, Fase, SubArtefacto
+from .forms import ProjectForm, ArtefactoForm, CustomUserCreationForm
+from core.ia import generar_subartefacto_con_prompt
+
+# ===== TIPOS DE ARTEFACTOS DEFINIDOS DIRECTAMENTE =====
+
+ARTEFACTOS_TEXTO = [
+    "Historia de Usuario",
+    "caja negra",
+    "smoke"
+]
+
+ARTEFACTOS_MERMAID = [
+    "Diagrama de flujo",
+    "Diagrama de clases",
+    "Diagrama de Entidad-Relacion",
+    "Diagrama de secuencia",
+    "Diagrama de estado",
+    "Diagrama de C4"
+]
+
+ARTEFACTOS_VALIDOS = set(ARTEFACTOS_TEXTO + ARTEFACTOS_MERMAID)
+
+# ===== UTILIDAD PARA LIMPIAR BLOQUES MERMAID =====
+
+def limpiar_mermaid(texto):
+    texto = texto.strip()
+    if texto.startswith("```mermaid"):
+        texto = texto.replace("```mermaid", "", 1).strip()
+    if texto.endswith("```"):
+        texto = texto[:texto.rfind("```")].strip()
+    return texto
+
+# ========================= DASHBOARD =========================
 
 @login_required
 def dashboard(request):
-    proyectos = Project.objects.filter(propietario=request.user)
+    proyectos = Project.objects.filter(propietario=request.user).order_by('-creado')
     return render(request, 'documentacion/dashboard.html', {'proyectos': proyectos})
 
+# ===================== CREAR Y EDITAR PROYECTOS =====================
+
+@login_required
 def crear_proyecto(request):
     if request.method == 'POST':
         form = ProjectForm(request.POST)
@@ -21,104 +55,28 @@ def crear_proyecto(request):
             proyecto.propietario = request.user
             proyecto.save()
 
-            # Crear automáticamente las fases y subartefactos
             fases_con_subartefactos = {
-                "Análisis Requisitos": ["Historia de Usuario", "Caso de Uso"],
-                "Diseño": ["Diagrama Clases", "Diagrama de Entidad - Relación"],
-                "Desarrollo": ["Diagrama de Colaboración", "Diagrama de Actividades"],
-                "Pruebas": ["Caja Negra", "Smoke"],
+                "Análisis Requisitos": ["Historia de Usuario", "Diagrama de flujo"],
+                "Diseño": ["Diagrama de clases", "Diagrama de Entidad-Relacion"],
+                "Desarrollo": ["Diagrama de secuencia", "Diagrama de estado"],
+                "Pruebas": ["caja negra", "smoke"],
                 "Despliegue": ["Diagrama de C4"]
             }
 
             for nombre_fase, subartefactos in fases_con_subartefactos.items():
                 fase = Fase.objects.create(proyecto=proyecto, nombre=nombre_fase)
-                for nombre_sub in subartefactos:
-                    SubArtefacto.objects.create(fase=fase, nombre=nombre_sub)
+                SubArtefacto.objects.bulk_create([
+                    SubArtefacto(fase=fase, nombre=nombre_sub) for nombre_sub in subartefactos
+                ])
 
             return redirect('dashboard')
     else:
         form = ProjectForm()
     return render(request, 'documentacion/crear_proyecto.html', {'form': form})
 
-SUBARTEFACTOS_MERMAID = [
-    "Caso de Uso",
-    "Diagrama Clases",
-    "Diagrama de Entidad - Relación",
-    "Diagrama de Colaboración",
-    "Diagrama de Actividades",
-    "Diagrama de C4"
-]
-
 @login_required
-def crear_artefacto(request, proyecto_id):
-    proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
-    titulo_default = request.GET.get('subartefacto', '')
-    if request.method == 'POST':
-        form = ArtefactoForm(request.POST)
-        if form.is_valid():
-            artefacto = form.save(commit=False)
-            artefacto.proyecto = proyecto
-            artefacto.generado_por_ia = True
-            try:
-                artefacto.contenido = generar_subartefacto_con_ia(
-                    tipo=artefacto.get_tipo_display(),
-                    nombre_proyecto=proyecto.nombre,
-                    descripcion=proyecto.descripcion
-                )
-            except Exception:
-                artefacto.contenido = "Error al generar contenido con IA."
-            artefacto.save()
-            return redirect('detalle_proyecto', proyecto_id=proyecto.id)
-    else:
-        form = ArtefactoForm(initial={'titulo': titulo_default})
-    return render(request, 'documentacion/crear_artefacto.html', {
-        'form': form,
-        'proyecto': proyecto
-    })
-
-@login_required
-def detalle_proyecto(request, proyecto_id):
-    proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
-    artefactos = proyecto.artefactos.all()
-    fases = proyecto.fases.prefetch_related('subartefactos')
-    return render(request, 'documentacion/detalle_proyecto.html', {
-        'proyecto': proyecto,
-        'artefactos': artefactos,
-        'fases': fases
-    })
-
-@login_required
-def ver_artefacto(request, artefacto_id):
-    artefacto = get_object_or_404(Artefacto, id=artefacto_id)
-    return render(request, 'documentacion/ver_artefacto.html', {
-        'artefacto': artefacto
-    })
-
-def cerrar_sesion(request):
-    logout(request)
-    return redirect('home')
-
-def signup(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.email = form.cleaned_data['email']
-            user.save()
-            user.backend = 'django.contrib.auth.backends.ModelBackend'
-            login(request, user)
-            return redirect('home')
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'registration/signup.html', {'form': form})
-
-@login_required
-def lista_proyectos(request):
-    proyectos = Project.objects.filter(propietario=request.user)
-    return render(request, 'documentacion/dashboard.html', {'proyectos': proyectos})
-
 def editar_proyecto(request, pk):
-    proyecto = get_object_or_404(Project, pk=pk)
+    proyecto = get_object_or_404(Project, pk=pk, propietario=request.user)
     if request.method == 'POST':
         form = ProjectForm(request.POST, instance=proyecto)
         if form.is_valid():
@@ -135,64 +93,218 @@ def eliminar_proyecto(request, proyecto_id):
     proyecto.delete()
     return redirect('dashboard')
 
+# ===================== REGISTRO Y SESIÓN =====================
+
+def signup(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.email = form.cleaned_data['email']
+            user.save()
+            login(request, user)
+            return redirect('dashboard')
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'registration/signup.html', {'form': form})
+
+def cerrar_sesion(request):
+    logout(request)
+    return redirect('home')
+
+# ===================== DETALLE PROYECTO =====================
+
+@login_required
+def detalle_proyecto(request, proyecto_id):
+    proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
+    fases = proyecto.fases.prefetch_related('subartefactos')
+    artefactos = proyecto.artefactos.select_related('fase', 'subartefacto')
+    return render(request, 'documentacion/detalle_proyecto.html', {
+        'proyecto': proyecto,
+        'fases': fases,
+        'artefactos': artefactos
+    })
+
+# ===================== ARTEFACTOS =====================
+
+@login_required
+def crear_artefacto(request, proyecto_id):
+    proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
+    titulo_default = request.GET.get('subartefacto', '')
+
+    if request.method == 'POST':
+        form = ArtefactoForm(request.POST)
+        if form.is_valid():
+            artefacto = form.save(commit=False)
+            artefacto.proyecto = proyecto
+            artefacto.generado_por_ia = True
+            try:
+                if artefacto.get_tipo_display() in ARTEFACTOS_TEXTO:
+                    contenido = generar_subartefacto_con_prompt(
+                        tipo=artefacto.get_tipo_display(),
+                        nombre_proyecto=proyecto.nombre,
+                        descripcion=proyecto.descripcion
+                    )
+                else:
+                    contenido = generar_subartefacto_con_prompt(
+                        tipo=artefacto.get_tipo_display(),
+                        texto=proyecto.descripcion
+                    )
+                    contenido = limpiar_mermaid(contenido)
+                artefacto.contenido = contenido
+            except Exception as e:
+                import traceback
+                artefacto.contenido = f"[ERROR IA] {str(e)}\n{traceback.format_exc()}"
+            artefacto.save()
+            return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+    else:
+        form = ArtefactoForm(initial={'titulo': titulo_default})
+    
+    return render(request, 'documentacion/crear_artefacto.html', {
+        'form': form,
+        'proyecto': proyecto
+    })
+
+@login_required
+def editar_artefacto(request, artefacto_id):
+    artefacto = get_object_or_404(Artefacto, id=artefacto_id, proyecto__propietario=request.user)
+    proyecto = artefacto.proyecto
+
+    if request.method == 'POST':
+        form = ArtefactoForm(request.POST, instance=artefacto)
+        regenerar = 'regenerar' in request.POST
+
+        if form.is_valid():
+            artefacto = form.save(commit=False)
+
+            if regenerar:
+                try:
+                    if artefacto.titulo in ARTEFACTOS_TEXTO:
+                        contenido = generar_subartefacto_con_prompt(
+                            tipo=artefacto.titulo,
+                            nombre_proyecto=proyecto.nombre,
+                            descripcion=proyecto.descripcion
+                        )
+                    else:
+                        contenido = generar_subartefacto_con_prompt(
+                            tipo=artefacto.titulo,
+                            texto=proyecto.descripcion
+                        )
+                        contenido = limpiar_mermaid(contenido)
+
+                    artefacto.contenido = contenido
+                    artefacto.generado_por_ia = True
+                    messages.success(request, 'Artefacto regenerado correctamente con IA.')
+                except Exception as e:
+                    import traceback
+                    artefacto.contenido = f"[ERROR IA] {str(e)}\n{traceback.format_exc()}"
+                    messages.error(request, '❌ Error al regenerar con IA.')
+            else:
+                messages.success(request, 'Artefacto actualizado correctamente.')
+
+            artefacto.save()
+            return redirect('ver_artefacto', artefacto_id=artefacto.id)
+        else:
+            messages.error(request, 'Corrige los errores en el formulario.')
+    else:
+        form = ArtefactoForm(instance=artefacto)
+
+    return render(request, 'documentacion/editar_artefacto.html', {
+        'form': form,
+        'artefacto': artefacto
+    })
+
+# ===================== VER ARTEFACTOS =====================
+
+@login_required
+def ver_artefacto(request, artefacto_id):
+    artefacto = get_object_or_404(Artefacto, id=artefacto_id)
+    is_mermaid = artefacto.titulo in ARTEFACTOS_MERMAID
+    return render(request, 'documentacion/ver_artefacto.html', {
+        'artefacto': artefacto,
+        'is_mermaid': is_mermaid
+    })
+
+#@login_required
+#def ver_artefacto2(request, artefacto_id):
+#    artefacto = get_object_or_404(Artefacto, id=artefacto_id, proyecto__propietario=request.user)
+#    is_mermaid = artefacto.titulo in ARTEFACTOS_MERMAID
+#    return render(request, 'documentacion/ver_artefacto2.html', {
+#        'artefacto': artefacto,
+#        'is_mermaid': is_mermaid
+#    })
+
+# ===================== GENERACIÓN AUTOMÁTICA =====================
+
+@login_required
+def generar_artefacto(request, proyecto_id, subartefacto_nombre):
+    proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
+    subartefacto = get_object_or_404(SubArtefacto, fase__proyecto=proyecto, nombre=subartefacto_nombre)
+
+    if subartefacto.nombre not in ARTEFACTOS_VALIDOS:
+        return JsonResponse({"error": "Tipo de artefacto inválido."}, status=400)
+
+    artefacto_existente = Artefacto.objects.filter(
+        proyecto=proyecto,
+        titulo=subartefacto.nombre
+    ).first()
+    if artefacto_existente:
+        return redirect('ver_artefacto', artefacto_id=artefacto_existente.id)
+
+    try:
+        if subartefacto.nombre in ARTEFACTOS_TEXTO:
+            contenido = generar_subartefacto_con_prompt(
+                tipo=subartefacto.nombre,
+                nombre_proyecto=proyecto.nombre,
+                descripcion=proyecto.descripcion
+            )
+        else:
+            contenido = generar_subartefacto_con_prompt(
+                tipo=subartefacto.nombre,
+                texto=proyecto.descripcion
+            )
+            contenido = limpiar_mermaid(contenido)
+    except Exception as e:
+        import traceback
+        contenido = f"[ERROR IA] {str(e)}\n{traceback.format_exc()}"
+
+    artefacto = Artefacto.objects.create(
+        proyecto=proyecto,
+        fase=subartefacto.fase,
+        subartefacto=subartefacto,
+        titulo=subartefacto.nombre,
+        contenido=contenido,
+        generado_por_ia=True
+    )
+    return redirect('ver_artefacto', artefacto_id=artefacto.id)
+
 @login_required
 def generar_subartefacto_modal(request, proyecto_id):
     subartefacto_nombre = request.GET.get("subartefacto", "")
     proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
 
-    if subartefacto_nombre in SUBARTEFACTOS_MERMAID:
-        contenido = generar_diagrama_mermaid()
-        tipo = "mermaid"
-    else:
-        contenido = generar_subartefacto_con_ia(
-            tipo=subartefacto_nombre,
-            nombre_proyecto=proyecto.nombre,
-            descripcion=proyecto.descripcion
-        )
-        tipo = "texto"
+    try:
+        if subartefacto_nombre in ARTEFACTOS_TEXTO:
+            contenido = generar_subartefacto_con_prompt(
+                tipo=subartefacto_nombre,
+                nombre_proyecto=proyecto.nombre,
+                descripcion=proyecto.descripcion
+            )
+        else:
+            contenido = generar_subartefacto_con_prompt(
+                tipo=subartefacto_nombre,
+                texto=proyecto.descripcion
+            )
+            contenido = limpiar_mermaid(contenido)
+
+        tipo = "mermaid" if subartefacto_nombre in ARTEFACTOS_MERMAID else "texto"
+    except Exception as e:
+        import traceback
+        contenido = f"[ERROR IA] {str(e)}\n{traceback.format_exc()}"
+        tipo = "error"
 
     return JsonResponse({
         "tipo": tipo,
         "contenido": contenido,
         "titulo": subartefacto_nombre
     })
-
-@login_required
-def generar_artefacto(request, proyecto_id, subartefacto_nombre,):
-    proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
-    subartefacto = get_object_or_404(SubArtefacto, fase__proyecto=proyecto, nombre=subartefacto_nombre)
-
-    # Verificar si ya existe un artefacto generado para este subartefacto
-    artefacto_existente = Artefacto.objects.filter(proyecto=proyecto, titulo=subartefacto.nombre).first()
-    if artefacto_existente:
-        return redirect('ver_artefacto', artefacto_id=artefacto_existente.id)
-
-    if subartefacto.nombre in SUBARTEFACTOS_MERMAID:
-        from core.mermaid import generar_diagrama_mermaid
-        contenido = generar_diagrama_mermaid(subartefacto.nombre)
-    else:
-        contenido = generar_subartefacto_con_ia(
-            tipo=subartefacto.nombre,
-            nombre_proyecto=proyecto.nombre,
-            descripcion=proyecto.descripcion
-        )
-
-    artefacto = Artefacto.objects.create(
-        proyecto=proyecto,
-        titulo=subartefacto.nombre,
-        contenido=contenido,
-        generado_por_ia=True
-    )
-
-    return redirect('ver_artefacto', artefacto_id=artefacto.id)
-
-def editar_artefacto(request, artefacto_id):
-    artefacto = get_object_or_404(Artefacto, id=artefacto_id)
-    if request.method == 'POST':
-        form = ArtefactoForm(request.POST, instance=artefacto)
-        if form.is_valid():
-            form.save()
-            return redirect('ver_artefacto', artefacto_id=artefacto.id)
-    else:
-        form = ArtefactoForm(instance=artefacto)
-    return render(request, 'documentacion/editar_artefacto.html', {'form': form, 'artefacto': artefacto})
