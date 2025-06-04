@@ -226,6 +226,15 @@ def editar_artefacto(request, artefacto_id):
         'artefacto': artefacto
     })
 
+#para eliminar artefacto
+@login_required
+def eliminar_artefacto(request, artefacto_id):
+    artefacto = get_object_or_404(Artefacto, id=artefacto_id, proyecto__propietario=request.user)
+    proyecto_id = artefacto.proyecto.id
+    artefacto.delete()
+    messages.success(request, "Artefacto eliminado correctamente.")
+    return redirect('detalle_proyecto', proyecto_id=proyecto_id)
+
 # ===================== VER ARTEFACTOS =====================
 
 @login_required

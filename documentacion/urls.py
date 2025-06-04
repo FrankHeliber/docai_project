@@ -16,5 +16,5 @@ urlpatterns = [
     #path('ver_artefacto2/<int:artefacto_id>/', views.ver_artefacto, name='ver_artefacto2'),  
     path('logout/', views.cerrar_sesion, name='logout'),  # Importante para cerrar sesión
     path('proyecto/<int:proyecto_id>/generar/<str:subartefacto_nombre>/', views.generar_artefacto, name='generar_artefacto'),
-    
+    path('artefacto/eliminar/<int:artefacto_id>/', views.eliminar_artefacto, name='eliminar_artefacto'),# eliminar artefacto
 ]

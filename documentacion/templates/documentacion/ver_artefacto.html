@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}{{ artefacto.titulo }} | Artefacto{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -8,38 +11,64 @@
             <span class="badge bg-info text-dark">{{ artefacto.get_tipo_display }}</span>
             <p class="text-muted mt-2">Proyecto: <strong>{{ artefacto.proyecto.nombre }}</strong></p>
         </div>
-        <div>
-            <a href="{% url 'detalle_proyecto' artefacto.proyecto.id %}" class="btn btn-secondary">← Regresar</a>
-            <a href="{% url 'editar_artefacto' artefacto.id %}" class="btn btn-warning ms-2">✏️ Editar</a>
+        <div class="d-flex">
+            <a href="{% url 'detalle_proyecto' artefacto.proyecto.id %}" class="btn btn-secondary me-2">← Regresar</a>
+            <a href="{% url 'editar_artefacto' artefacto.id %}" class="btn btn-warning me-2">✏️ Editar</a>
+            <!-- Botón que abre el modal -->
+            <form method="post" action="{% url 'eliminar_artefacto' artefacto.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger me-2">🗑️ Eliminar</button>
+                
+            </form>
         </div>
     </div>
-<div class="card shadow-sm">
+
+    <div class="card shadow-sm">
         <div class="card-body">
-                <h5 class="card-title text-muted">Contenido del Artefacto</h5>
-                <hr>
+            <h5 class="card-title text-muted">Contenido del Artefacto</h5>
+            <hr>
             <div class="p-4 bg-light rounded shadow-sm">
                 <pre class="fs-6" style="white-space: pre-line;">{{ artefacto.contenido }}</pre>
             </div>
-            
         </div>
     </div>
-</div>
-{% if artefacto.tipo in "caso_uso diagrama_clases entidad_relacion colaboracion actividades c4" %}
+
+    {% if artefacto.titulo in "Diagrama de flujo Diagrama de clases Diagrama de Entidad-Relacion Diagrama de secuencia Diagrama de estado Diagrama de C4" %}
     <div class="card p-3 my-4 shadow">
         <h5 class="text-center text-muted">🧩 Diagrama generado</h5>
         <div class="mermaid">
             {{ artefacto.contenido|safe }}
         </div>
     </div>
-{% else %}
-    <div class="card p-3 my-4 shadow">
-        <h5>📝 Contenido:</h5>
-        <pre>{{ artefacto.contenido }}</pre>
-    </div>
-{% endif %}
-            <script type="module">
-                import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-                mermaid.initialize({ startOnLoad: true });
-            </script>
+    {% endif %}
+</div>
 
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-labelledby="modalEliminarLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'eliminar_artefacto' artefacto.id %}">
+        {% csrf_token %}
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="modalEliminarLabel">Confirmar eliminación</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          ¿Estás seguro de que deseas eliminar este artefacto?
+          <br><strong>{{ artefacto.titulo }}</strong>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Eliminar definitivamente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Mermaid y Bootstrap JS -->
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true });
+</script>
 {% endblock %}
