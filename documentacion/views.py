@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, logout
+from django.contrib.auth import authenticate,login, logout
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.contrib import messages
@@ -102,10 +102,22 @@ def signup(request):
             user = form.save(commit=False)
             user.email = form.cleaned_data['email']
             user.save()
-            login(request, user)
-            return redirect('dashboard')
+
+            # Autenticar con username y password1 para obtener el backend
+            user = authenticate(
+                request,
+                username=form.cleaned_data['username'],
+                password=form.cleaned_data['password1']
+            )
+            if user is not None:
+                login(request, user)
+                return redirect('home')
+            else:
+                messages.error(request, "No se pudo iniciar sesión automáticamente. Intenta iniciar sesión manualmente.")
+                return redirect('login')
     else:
         form = CustomUserCreationForm()
+
     return render(request, 'registration/signup.html', {'form': form})
 
 def cerrar_sesion(request):
