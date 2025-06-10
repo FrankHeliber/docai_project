@@ -2,11 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate,login, logout
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from .models import Project, Artefacto, Fase, SubArtefacto
 from .forms import ProjectForm, ArtefactoForm, CustomUserCreationForm
 from core.ia import generar_subartefacto_con_prompt
+import datetime
 
 # ===== TIPOS DE ARTEFACTOS DEFINIDOS DIRECTAMENTE =====
 
@@ -187,37 +188,45 @@ def editar_artefacto(request, artefacto_id):
         regenerar = 'regenerar' in request.POST
 
         if form.is_valid():
-            artefacto = form.save(commit=False)
-
             if regenerar:
                 try:
+                    # actualiza título desde el formulario antes de regenerar
+                    artefacto.titulo = form.cleaned_data['titulo']
+                    artefacto.tipo = form.cleaned_data['tipo']  # se guarda el tipo
                     if artefacto.titulo in ARTEFACTOS_TEXTO:
-                        contenido = generar_subartefacto_con_prompt(
+                        nuevo_contenido = generar_subartefacto_con_prompt(
                             tipo=artefacto.titulo,
                             nombre_proyecto=proyecto.nombre,
                             descripcion=proyecto.descripcion
                         )
                     else:
-                        contenido = generar_subartefacto_con_prompt(
+                        nuevo_contenido = generar_subartefacto_con_prompt(
                             tipo=artefacto.titulo,
                             texto=proyecto.descripcion
                         )
-                        contenido = limpiar_mermaid(contenido)
+                        nuevo_contenido = limpiar_mermaid(nuevo_contenido)
 
-                    artefacto.contenido = contenido
+                    artefacto.contenido = nuevo_contenido
                     artefacto.generado_por_ia = True
-                    messages.success(request, 'Artefacto regenerado correctamente con IA.')
+                    messages.success(request, '♻️ Artefacto regenerado correctamente con IA.')
+
                 except Exception as e:
                     import traceback
                     artefacto.contenido = f"[ERROR IA] {str(e)}\n{traceback.format_exc()}"
-                    messages.error(request, '❌ Error al regenerar con IA.')
+                    messages.error(request, '❌ Error al regenerar el contenido con IA.')
+
             else:
-                messages.success(request, 'Artefacto actualizado correctamente.')
+                # actualizar solo si no se va a regenerar
+                artefacto = form.save(commit=False)
+                messages.success(request, '💾 Artefacto actualizado correctamente.')
 
             artefacto.save()
             return redirect('ver_artefacto', artefacto_id=artefacto.id)
         else:
-            messages.error(request, 'Corrige los errores en el formulario.')
+            print("❌ Errores de validación:", form.errors)  # 👈 Para debugging
+            messages.error(request, '❌ Corrige los errores en el formulario.')
+
+
     else:
         form = ArtefactoForm(instance=artefacto)
 
@@ -227,6 +236,7 @@ def editar_artefacto(request, artefacto_id):
     })
 
 #para eliminar artefacto
+#@require_POST
 @login_required
 def eliminar_artefacto(request, artefacto_id):
     artefacto = get_object_or_404(Artefacto, id=artefacto_id, proyecto__propietario=request.user)
@@ -234,6 +244,7 @@ def eliminar_artefacto(request, artefacto_id):
     artefacto.delete()
     messages.success(request, "Artefacto eliminado correctamente.")
     return redirect('detalle_proyecto', proyecto_id=proyecto_id)
+
 
 # ===================== VER ARTEFACTOS =====================
 
@@ -329,3 +340,26 @@ def generar_subartefacto_modal(request, proyecto_id):
         "contenido": contenido,
         "titulo": subartefacto_nombre
     })
+
+# ===================== DESCARGAR_ DIAGRAMA =====================
+
+@login_required
+def descargar_diagrama(request, artefacto_id):
+    artefacto = get_object_or_404(Artefacto, id=artefacto_id, proyecto__propietario=request.user)
+    
+    # Verificar si es un tipo válido de diagrama
+    diagramas_validos = [
+        "Diagrama de flujo",
+        "Diagrama de clases",
+        "Diagrama de Entidad-Relacion",
+        "Diagrama de secuencia",
+        "Diagrama de estado",
+        "Diagrama de C4"
+    ]
+    if artefacto.titulo not in diagramas_validos:
+        return HttpResponse("Este artefacto no es un diagrama válido para descarga.", status=400)
+
+    filename = f"{artefacto.titulo.replace(' ', '_')}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.mmd"
+    response = HttpResponse(artefacto.contenido, content_type='text/plain')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response

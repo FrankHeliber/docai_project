@@ -20,24 +20,30 @@ PROMPTS = {
         "Con la estructura: Como, Quiero, Para. No le des formato a la respuesta. Ni uses lenguaje técnico."
     ),
 
-    "Diagrama de flujo": lambda texto: {
-        "Genera un solo diagrama de flujo donde estén todos los usuarios en ese mismo diagrama usando la sintaxis Markdown de Mermaid basado en las siguientes historias de usuario:\n\n"
-        f"{texto}\n\n"
-        "El diagrama debe mostrar el flujo principal de acciones y decisiones descritas en las historias, "
-        "incluyendo un solo inicio, pasos de cada uno de los actores, decisiones y finalización. Usa nodos claros y conecta con flechas para mostrar el flujo.\n\n"
-        "Devuelve sólo el bloque de código con sintaxis Mermaid listo para copiar y pegar, sin texto adicional ni explicaciones.\n\n"
-        "Ejemplo de formato:\n"
-        "Ten en cuenta no empezar con backticks ni terminar con backticks, ni empezar con la palabra mermaid, además no uses paréntesis\n"
+    "Diagrama de flujo": lambda texto: (
+        "Genera un diagrama de flujo único en sintaxis Mermaid (Markdown) que cumpla con:\n"
+        "1. Incluir TODOS los usuarios/actores en el mismo flujo\n"
+        "2. Usar estructura flowchart TD con nodos concisos (máximo 3 palabras)\n"
+        "3. Decisiones con formato: {¿Pregunta?} y flechas -->|sí|/-->|no|\n"
+        "4. Un solo nodo inicial [Inicio] y final [Fin]\n"
+        "5. Conexiones lógicas sin bucles infinitos\n\n"
+        "Instrucciones técnicas:\n"
+        "- Usar IDs únicos en inglés para nodos (Ej: A, B, C1)\n"
+        "- Evitar caracteres especiales en IDs\n"
+        "- Alinear con espacios: '  ' para indentación\n"
+        "- Validar sintaxis en Mermaid Live Editor\n\n"
+        f"Historias de usuario:\n{texto}\n\n"
+        "Formato de salida (solo código, sin explicaciones):\n"
         "flowchart TD\n"
-        "    A[Inicio] --> B[Primer paso]\n"
-        "    B --> C{¿Decisión?}\n"
-        "    C -->|Sí| D[Acción 1]\n"
-        "    C -->|No| E[Acción 2]\n"
-        "    D --> F[Fin]\n"
-        "    E --> F[Fin]"
-    },
+        "  A[Inicio] --> B[Acción 1]\n"
+        "  B --> C{¿Decisión?}\n"
+        "  C -->|sí| D[Acción 2]\n"
+        "  C -->|no| E[Acción 3]\n"
+        "  D --> F[Fin]\n"
+        "  E --> F"
+    ),
 
-    "Diagrama de clases": lambda texto: {
+    "Diagrama de clases": lambda texto: (
         "Genera un diagrama de clases en sintaxis Mermaid basado en el siguiente texto:\n\n"
         f"{texto}\n\n"
         "Incluye las siguientes características:\n"
@@ -59,23 +65,28 @@ PROMPTS = {
         "    Usuario <|-- Cliente\n"
         "    Cliente *-- Pedido : realiza\n"
         "    Pedido o-- Producto : contiene"
-    },
+    ),
 
     "Diagrama de Entidad-Relacion": lambda texto: (
         "Genera un diagrama entidad-relación (ER) en sintaxis Mermaid basado en el siguiente texto:\n\n"
         f"{texto}\n\n"
-        "Por favor, sigue estas indicaciones:\n"
-        "- Usa direction TB o LR.\n"
-        "- Usa ||, |o, }o, }| para cardinalidades.\n"
-        "- Usa erDiagram y bloques de entidad.\n"
-        "- Ejemplo:\n"
+        "Indicaciones:\n"
+        "- Usa la palabra clave erDiagram para iniciar el diagrama.\n"
+        "- Define entidades con sus atributos dentro de llaves {}, indicando tipo y clave primaria (PK) si aplica.\n"
+        "- Usa cardinalidades con los símbolos ||, |o, }o, }| según notación crow's foot.\n"
+        "- Define relaciones con la sintaxis: ENTIDAD1 <cardinalidad>--<cardinalidad> ENTIDAD2 : descripción\n"
+        "- No incluyas directivas de dirección (TB o LR) ya que Mermaid ER no las soporta.\n"
+        "- Usa IDs y nombres de entidades en mayúsculas y sin espacios.\n"
+        "- Limita los nombres de atributos a un máximo de 3 palabras para mejor legibilidad.\n"
+        "- Devuelve solo el bloque de código completo en Mermaid, sin explicaciones ni texto adicional.\n\n"
+        "Ejemplo:\n"
         "erDiagram\n"
         "    CLIENTE {\n"
-        "        int id\n"
+        "        int id PK\n"
         "        string nombre\n"
         "    }\n"
         "    PEDIDO {\n"
-        "        int id\n"
+        "        int id PK\n"
         "        date fecha\n"
         "    }\n"
         "    CLIENTE ||--o{ PEDIDO : realiza\n"
@@ -146,11 +157,16 @@ PROMPTS = {
     ),
 
     "smoke": lambda nombre_proyecto, descripcion: (
-        "Genera pruebas smoke (pruebas rápidas y mínimas) para validar funcionalidad esencial según el siguiente texto:\n\n"
-        f"{nombre_proyecto, descripcion}\n\n"
-        "Devuelve sólo el texto claro y estructurado siguiendo este formato smoke, sin numeraciones o texto adicional fuera de la estructura."
-        #"Incluye nombre de la prueba, propósito, pasos mínimos y resultado esperado. Usa formato plano y claro."
+        "Genera pruebas smoke (pruebas rápidas y mínimas) para validar la funcionalidad esencial según el siguiente texto:\n\n"
+        f"Proyecto: {nombre_proyecto}\nDescripción: {descripcion}\n\n"
+        "Devuelve sólo texto claro y estructurado con el siguiente formato para cada prueba:\n"
+        "- Nombre de la prueba\n"
+        "- Propósito\n"
+        "- Pasos mínimos\n"
+        "- Resultado esperado\n\n"
+        "No incluyas numeraciones ni texto adicional fuera de esta estructura."
     ),
+
 }
 
 # ===== FUNCIONES DE GENERACIÓN =====

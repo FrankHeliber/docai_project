@@ -3,6 +3,17 @@ from .models import Project, Artefacto
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
+ARTEFACTOS_VALIDOS = [
+    "Historia de Usuario",
+    "caja negra",
+    "smoke",
+    "Diagrama de flujo",
+    "Diagrama de clases",
+    "Diagrama de Entidad-Relacion",
+    "Diagrama de secuencia",
+    "Diagrama de estado",
+    "Diagrama de C4"
+]
 
 class ProjectForm(forms.ModelForm):
     """
@@ -63,8 +74,8 @@ class ArtefactoForm(forms.ModelForm):
 
     class Meta:
         model = Artefacto
-        fields = ['titulo', 'contenido'] 
-
+        fields = ['titulo', 'tipo', 'contenido']
+ 
 
 class CustomUserCreationForm(UserCreationForm):
     """

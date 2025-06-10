@@ -17,4 +17,6 @@ urlpatterns = [
     path('logout/', views.cerrar_sesion, name='logout'),  # Importante para cerrar sesión
     path('proyecto/<int:proyecto_id>/generar/<str:subartefacto_nombre>/', views.generar_artefacto, name='generar_artefacto'),
     path('artefacto/eliminar/<int:artefacto_id>/', views.eliminar_artefacto, name='eliminar_artefacto'),# eliminar artefacto
+    path('artefacto/<int:artefacto_id>/descargar/', views.descargar_diagrama, name='descargar_diagrama'), #descaegar diagramas 
+
 ]

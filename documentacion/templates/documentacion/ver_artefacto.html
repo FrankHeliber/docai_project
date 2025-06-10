@@ -14,11 +14,9 @@
         <div class="d-flex">
             <a href="{% url 'detalle_proyecto' artefacto.proyecto.id %}" class="btn btn-secondary me-2">← Regresar</a>
             <a href="{% url 'editar_artefacto' artefacto.id %}" class="btn btn-warning me-2">✏️ Editar</a>
-            <!-- Botón que abre el modal -->
             <form method="post" action="{% url 'eliminar_artefacto' artefacto.id %}">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-danger me-2">🗑️ Eliminar</button>
-                
             </form>
         </div>
     </div>
@@ -28,22 +26,50 @@
             <h5 class="card-title text-muted">Contenido del Artefacto</h5>
             <hr>
             <div class="p-4 bg-light rounded shadow-sm">
+              {% if artefacto.titulo == "Historia de Usuario" %}
+                {% with lineas=artefacto.contenido|linebreaksbr %}
+                  {% for linea in artefacto.contenido.splitlines %}
+                        {% if "Nombre:" in linea %}
+                        <p><strong>{{ linea }}</strong></p>
+                        {% elif "Prioridad:" in linea %}
+                        <p><strong>{{ linea }}</strong></p>
+                        {% elif "Descripción:" in linea %}
+                        <p><strong>{{ linea }}</strong></p>
+                        {% else %}
+                        <p>{{ linea }}</p>
+                    {% endif %}
+                  {% endfor %}
+                {% endwith %}
+              {% else %}
                 <pre class="fs-6" style="white-space: pre-line;">{{ artefacto.contenido }}</pre>
+              {% endif %}
             </div>
+
         </div>
     </div>
 
     {% if artefacto.titulo in "Diagrama de flujo Diagrama de clases Diagrama de Entidad-Relacion Diagrama de secuencia Diagrama de estado Diagrama de C4" %}
     <div class="card p-3 my-4 shadow">
         <h5 class="text-center text-muted">🧩 Diagrama generado</h5>
-        <div class="mermaid">
-            {{ artefacto.contenido|safe }}
+
+        <div class="text-end mb-3">
+            <button onclick="descargardiagrama('svg')" class="btn btn-outline-primary btn-sm me-2">⬇️ SVG</button>
+            <button onclick="descargardiagrama('jpg')" class="btn btn-outline-success btn-sm me-2">⬇️ JPG</button>
+            <a href="{% url 'descargar_diagrama' artefacto.id %}" class="btn btn-outline-secondary btn-sm">⬇️ MMD</a>
         </div>
+
+        <div class="mermaid" id="mermaid-container">
+          {{ artefacto.contenido|safe }}
+        </div>
+        <!-- Guardamos el texto Mermaid puro (sin procesar) en un <script>--> 
+        <script id="mermaid-code" type="text/plain">
+          {{ artefacto.contenido|safe }}
+        </script>
+
     </div>
     {% endif %}
 </div>
 
-<!-- Modal de confirmación de eliminación -->
 <div class="modal fade" id="modalEliminar" tabindex="-1" aria-labelledby="modalEliminarLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -66,9 +92,105 @@
   </div>
 </div>
 
-<!-- Mermaid y Bootstrap JS -->
+<script>
+  window.DIAGRAMA_INFO = {
+    proyecto: "{{ artefacto.proyecto.nombre|slugify }}",
+    titulo: "{{ artefacto.titulo|slugify }}",
+    fecha: "{{ artefacto.creado|date:'Y-m-d' }}"
+  };
+</script>
+<!--<script src="https://cdn.jsdelivr.net/npm/canvg@4.0.3/dist/index.js"></script>-->
+
 <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true });
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true });
+
+  function decodeHtmlEntities(str) {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
+  }
+
+  window.descargardiagrama = async function(formato = "svg") {
+    const contenedor = document.getElementById("mermaid-code");
+    if (!contenedor) {
+      alert("No se encontró el código Mermaid.");
+      return;
+    }
+
+      const codigoMermaid = decodeHtmlEntities(contenedor.textContent.trim());
+      const { svg } = await mermaid.render("descarga-diagrama", codigoMermaid);
+    
+      const { proyecto, titulo, fecha } = window.DIAGRAMA_INFO;
+      const nombreArchivo = `${proyecto}_${titulo}_${fecha}.${formato}`;
+
+    if (formato === "svg") {
+      const blob = new Blob([svg], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombreArchivo;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    if (formato === "jpg") {
+      try {
+        // Tomamos el SVG renderizado del DOM
+        const svgElement = document.querySelector(".mermaid svg");
+        if (!svgElement) {
+          alert("❌ No se encontró el SVG renderizado.");
+          return;
+        }
+
+        // Serializamos el SVG completo correctamente
+        let svgString = new XMLSerializer().serializeToString(svgElement);
+
+        // Añadimos el xmlns si no está
+        if (!svgString.includes("xmlns=\"http://www.w3.org/2000/svg\"")) {
+          svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+
+        // Codificamos en base64 para evitar errores CORS
+        const svgBase64 = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width * 9;   // Escalado para más calidad
+          canvas.height = img.height * 9;
+          const ctx = canvas.getContext("2d");
+
+          // Fondo blanco para JPG
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Exportamos como JPG
+          canvas.toBlob((blob) => {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = nombreArchivo;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+          }, "image/jpeg", 0.95);
+        };
+
+        img.onerror = function () {
+          alert("❌ Error al cargar el SVG como imagen.");
+        };
+
+        img.src = svgBase64;
+
+      } catch (error) {
+        alert("❌ Error inesperado al exportar a JPG.");
+        console.error(error);
+      }
+    }
+
+  };
 </script>
 {% endblock %}
