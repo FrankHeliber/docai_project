@@ -255,6 +255,8 @@ class CustomUserCreationForm(UserCreationForm):
         username = self.cleaned_data['username']
         if not re.match(r'^[a-zA-Z0-9_]{3,20}$', username):
             raise ValidationError("Debe contener solo letras, números o guion bajo, entre 3 y 20 caracteres.")
+        if texto_no_coherente(username):
+            raise ValidationError("El usuario no es coherente o tiene patrones repetitivos.")
         return username
 
     def clean_email(self):
