@@ -108,7 +108,7 @@ class ProjectForm(forms.ModelForm):
         if not texto_coherente(descripcion):
             raise forms.ValidationError("La descripción debe tener sentido y estar bien redactada.")
 
-        
+
         return descripcion
 
 # ===== creacion y editar artefacto ============
@@ -260,9 +260,23 @@ class CustomUserCreationForm(UserCreationForm):
         return username
 
     def clean_email(self):
-        email = self.cleaned_data['email']
-        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
-            raise ValidationError("Ingrese un correo electrónico válido.")
+        email = self.cleaned_data['email'].strip().lower()
+
+        # Verificar formato general válido
+        if not re.match(r'^[\w\.-]+@[a-zA-Z]+\.[a-z]{2,}(?:\.[a-z]{2,})?$', email):
+            raise ValidationError("Formato de correo inválido.")
+
+        dominio = email.split('@')[1]
+        nombre_dominio = dominio.split('.')[0]
+
+        # Evita dominios con solo una letra repetida, como gggggg
+        if re.fullmatch(r'(.)\1{2,}', nombre_dominio):
+            raise ValidationError("El dominio no parece real. Usa uno válido como gmail.com o outlook.com.")
+
+        # Evita dominios con letras no significativas
+        if len(nombre_dominio) < 4 or not any(letra in nombre_dominio for letra in 'aeiou'):
+            raise ValidationError("El dominio debe ser coherente y reconocible.")
+
         return email
 
     def clean_password1(self):
