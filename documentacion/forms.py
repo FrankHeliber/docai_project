@@ -57,7 +57,7 @@ def texto_coherente(texto):
     # Evita símbolos seguidos o solo símbolos
     if re.search(r'[\.\,\{\}\[\]\|\\\/]{3,}', texto):
         return False
-
+    
     return True
 
 # ===== creacion y editar proyecto ============
@@ -108,7 +108,7 @@ class ProjectForm(forms.ModelForm):
         if not texto_coherente(descripcion):
             raise forms.ValidationError("La descripción debe tener sentido y estar bien redactada.")
 
-
+        
         return descripcion
 
 # ===== creacion y editar artefacto ============
@@ -213,20 +213,20 @@ class CustomUserCreationForm(UserCreationForm):
     """
     Formulario personalizado de registro de usuario con campo de email obligatorio.
     """
+    username = forms.CharField(
+        label='Nombre de usuario',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ingrese un nombre de usuario'
+        })
+    )
+            
     email = forms.EmailField(
         required=True,
         label="Correo electrónico",
         widget=forms.EmailInput(attrs={
             'class': 'form-control',
             'placeholder': 'correo@ejemplo.com'
-        })
-    )
-
-    username = forms.CharField(
-        label='Nombre de usuario',
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Ingrese un nombre de usuario'
         })
     )
 
@@ -258,6 +258,7 @@ class CustomUserCreationForm(UserCreationForm):
         if texto_no_coherente(username):
             raise ValidationError("El usuario no es coherente o tiene patrones repetitivos.")
         return username
+
 
     def clean_email(self):
         email = self.cleaned_data['email'].strip().lower()

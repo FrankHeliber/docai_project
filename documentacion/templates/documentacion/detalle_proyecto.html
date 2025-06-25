@@ -1,4 +1,3 @@
-{# Extiende la plantilla base.html para heredar su estructura (HTML, encabezado, scripts, etc.) #}
 {% extends 'base.html' %}
 
 {# Define el título de la página que se muestra en la pestaña del navegador #}
@@ -29,6 +28,12 @@
     {# Si hay fases definidas para el proyecto #}
     {% if fases %}
     
+    {% if not hu_con_requisitos %}
+    <div class="alert alert-warning text-dark text-center shadow-sm mb-4 border border-warning">
+        ⚠️ Primero debes generar la <strong>Historia de Usuario</strong> para habilitar la creación de diagramas y pruebas.
+    </div>
+    {% endif %}
+
     {# Fila con columnas responsivas: 1 en móvil, 2 en tablet, 3 en escritorio #}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
 
@@ -43,29 +48,25 @@
                 </div>
 
                 <div class="card-body">
-                    
-                    {# Si la fase tiene subartefactos asociados #}
                     {% if fase.subartefactos.all %}
-                        
-                        {# Itera por cada subartefacto de la fase #}
                         {% for sub in fase.subartefactos.all %}
                         <div class="d-grid gap-2 mb-2">
-                            
-                            {# === BOTÓN DE SUBARTEFACTO === #}
-                            {# Este botón redirige a la vista 'generar_artefacto', pasando el ID del proyecto y el nombre del subartefacto #}
-                            <a href="{% url 'generar_artefacto' proyecto.id sub.nombre %}" class="btn btn-outline-info btn-sm">
-                                {{ sub.nombre }}
-                            </a>
-                            {# === FIN DEL BOTÓN === #}
-                            
+                            {% if sub.nombre == "Historia de Usuario" or hu_con_requisitos %}
+                                <a href="{% url 'generar_artefacto' proyecto.id sub.nombre %}" class="btn btn-outline-info btn-sm">
+                                    {{ sub.nombre }}
+                                </a>
+                            {% else %}
+                                <button class="btn btn-outline-secondary btn-sm" disabled title="Primero genera la Historia de Usuario">
+                                    🚫 {{ sub.nombre }}
+                                </button>
+                            {% endif %}
                         </div>
                         {% endfor %}
-
-                    {# Si no hay subartefactos en la fase #}
                     {% else %}
                         <p class="text-muted text-center">No hay subartefactos definidos.</p>
                     {% endif %}
                 </div>
+
             </div>
         </div>
         {% endfor %}

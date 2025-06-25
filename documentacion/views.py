@@ -6,7 +6,7 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from .models import Project, Artefacto, Fase, SubArtefacto
 from .forms import ProjectForm, ArtefactoForm, CustomUserCreationForm
-from core.ia import generar_subartefacto_con_prompt
+from core.ia import generar_subartefacto_con_prompt, extraer_requisitos, _generar_contenido, PROMPTS
 import datetime
 
 # ===== TIPOS DE ARTEFACTOS DEFINIDOS DIRECTAMENTE =====
@@ -132,13 +132,20 @@ def detalle_proyecto(request, proyecto_id):
     proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
     fases = proyecto.fases.prefetch_related('subartefactos')
     artefactos = proyecto.artefactos.select_related('fase', 'subartefacto')
+
+    #=======  Buscar HU y verificar si tiene requisitos ===================
+    hu = artefactos.filter(titulo__iexact="Historia de Usuario").first()
+    hu_con_requisitos = hu and hu.contexto and hu.contexto.strip() != ""
+    #==== hasta aqui verificacion si tiene requisitos =======================
+
     return render(request, 'documentacion/detalle_proyecto.html', {
         'proyecto': proyecto,
         'fases': fases,
-        'artefactos': artefactos
+        'artefactos': artefactos,
+        'hu_con_requisitos': hu_con_requisitos  #  **bandera para el template
     })
 
-# ===================== ARTEFACTOS =====================
+# ===================== CREAR EDITAR Y ELIMINAR ARTEFACTOS =====================
 
 @login_required
 def crear_artefacto(request, proyecto_id):
@@ -193,28 +200,37 @@ def editar_artefacto(request, artefacto_id):
                     # actualiza título desde el formulario antes de regenerar
                     artefacto.titulo = form.cleaned_data['titulo']
                     artefacto.tipo = form.cleaned_data['tipo']  # se guarda el tipo
-                    if artefacto.titulo in ARTEFACTOS_TEXTO:
-                        nuevo_contenido = generar_subartefacto_con_prompt(
-                            tipo=artefacto.titulo,
+                    #====== desde aqui se modifico para regenerar HU y requisitos=====
+                    if artefacto.titulo.lower() == "historia de usuario":
+                        contenido = generar_subartefacto_con_prompt(
+                            tipo="Historia de Usuario",
                             nombre_proyecto=proyecto.nombre,
                             descripcion=proyecto.descripcion
                         )
+                        artefacto.contenido = contenido
+                        artefacto.generado_por_ia = True
+
+                        try:
+                            from core.ia import extraer_requisitos  # Asegúrate de tener esto importado
+                            requisitos = extraer_requisitos(contenido)
+                            artefacto.contexto = requisitos
+                        except Exception as e:
+                            artefacto.contexto = "[ERROR AL EXTRAER REQUISITOS]"
                     else:
-                        nuevo_contenido = generar_subartefacto_con_prompt(
+                        contenido = generar_subartefacto_con_prompt(
                             tipo=artefacto.titulo,
                             texto=proyecto.descripcion
                         )
-                        nuevo_contenido = limpiar_mermaid(nuevo_contenido)
+                        artefacto.contenido = limpiar_mermaid(contenido)
+                        artefacto.generado_por_ia = True
 
-                    artefacto.contenido = nuevo_contenido
-                    artefacto.generado_por_ia = True
                     messages.success(request, '♻️ Artefacto regenerado correctamente con IA.')
 
                 except Exception as e:
                     import traceback
                     artefacto.contenido = f"[ERROR IA] {str(e)}\n{traceback.format_exc()}"
                     messages.error(request, '❌ Error al regenerar el contenido con IA.')
-
+                #==== hasta aqui se modifico para regenerar HU y Requisitos================
             else:
                 # actualizar solo si no se va a regenerar
                 artefacto = form.save(commit=False)
@@ -252,9 +268,19 @@ def eliminar_artefacto(request, artefacto_id):
 def ver_artefacto(request, artefacto_id):
     artefacto = get_object_or_404(Artefacto, id=artefacto_id)
     is_mermaid = artefacto.titulo in ARTEFACTOS_MERMAID
+    #===== este codigo fue agregado para los diagramas ========
+    if artefacto.titulo.lower() in PROMPTS and artefacto.titulo.lower() in ARTEFACTOS_MERMAID:
+        try:
+            texto_diagrama = artefacto.contexto if artefacto.contexto else artefacto.contenido
+            prompt = PROMPTS[artefacto.titulo](texto_diagrama)
+            mermaid_code = _generar_contenido(prompt)
+        except Exception as e:
+            mermaid_code = f"[ERROR AL GENERAR DIAGRAMA] {str(e)}"
+    #====== hasta aqui se agrego el codigo ======================
     return render(request, 'documentacion/ver_artefacto.html', {
         'artefacto': artefacto,
-        'is_mermaid': is_mermaid
+        'is_mermaid': is_mermaid,
+        #'mermaid_code': mermaid_code
     })
 
 #@login_required
@@ -266,7 +292,7 @@ def ver_artefacto(request, artefacto_id):
 #        'is_mermaid': is_mermaid
 #    })
 
-# ===================== GENERACIÓN AUTOMÁTICA =====================
+# ===================== IA GENERACIÓN AUTOMÁTICA ARTEFACTOS Y SUBARTEFACTOS =====================
 
 @login_required
 def generar_artefacto(request, proyecto_id, subartefacto_nombre):
@@ -275,6 +301,28 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
 
     if subartefacto.nombre not in ARTEFACTOS_VALIDOS:
         return JsonResponse({"error": "Tipo de artefacto inválido."}, status=400)
+     # Validar si se requiere Historia de Usuario primero
+    artefactos = Artefacto.objects.filter(proyecto=proyecto)
+    hu = artefactos.filter(titulo__iexact="Historia de Usuario").first()
+    hu_con_requisitos = hu and hu.contexto and hu.contexto.strip() != ""
+
+    if subartefacto.nombre not in ARTEFACTOS_TEXTO and not hu_con_requisitos:
+        messages.warning(request, "⚠️ Primero debes generar la Historia de Usuario con requisitos antes de crear este tipo de artefacto.")
+        return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+    
+    # ===== BLOQUEO: si no se ha generado la HU con requisitos, no se permite generar otros artefactos=====
+    #if subartefacto.nombre not in ["Historia de Usuario"]:
+    #    historia = Artefacto.objects.filter(
+    #        proyecto=proyecto,
+    #        titulo__iexact="Historia de Usuario"
+    #    ).first()
+    #    if not historia or not historia.contexto:
+    #        messages.error(
+    #            request,
+    #            "⚠️ Primero debes generar la Historia de Usuario con sus requisitos antes de generar este artefacto."
+    #        )
+    #        return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+    # === hasta aqui el nuevo codigo de bloquero ========================================================
 
     artefacto_existente = Artefacto.objects.filter(
         proyecto=proyecto,
@@ -290,12 +338,15 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
                 nombre_proyecto=proyecto.nombre,
                 descripcion=proyecto.descripcion
             )
+        
         else:
+            
             contenido = generar_subartefacto_con_prompt(
                 tipo=subartefacto.nombre,
                 texto=proyecto.descripcion
             )
             contenido = limpiar_mermaid(contenido)
+
     except Exception as e:
         import traceback
         contenido = f"[ERROR IA] {str(e)}\n{traceback.format_exc()}"
@@ -308,6 +359,28 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
         contenido=contenido,
         generado_por_ia=True
     )
+
+        # =====se agrego para extraer artefactos ======
+    if artefacto.titulo.lower() == "historia de usuario":
+            contenido = generar_subartefacto_con_prompt(
+                tipo="Historia de Usuario",
+                nombre_proyecto=proyecto.nombre,
+                descripcion=proyecto.descripcion
+            )
+
+            artefacto.contenido = contenido
+            artefacto.generado_por_ia = True
+
+            try:
+                requisitos = extraer_requisitos(contenido)
+                artefacto.contexto = requisitos
+            except Exception as e:
+                artefacto.contexto = "[ERROR AL EXTRAER REQUISITOS]"  # fallback
+
+            artefacto.save()
+            messages.success(request, "Historia de Usuario generada con requisitos.")
+            return redirect('ver_artefacto', artefacto.id)
+            #===== hasta aqui se agrego el codigo extraer artefactos =====
     return redirect('ver_artefacto', artefacto_id=artefacto.id)
 
 @login_required

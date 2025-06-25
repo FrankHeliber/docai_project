@@ -1,10 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block title %}{{ artefacto.titulo }} | Artefacto{% endblock %}
-
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-1">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="text-primary">{{ artefacto.titulo }}</h2>
@@ -20,37 +18,25 @@
             </form>
         </div>
     </div>
-
-    <div class="card shadow-sm">
+    <div class="card mt-3 border-info">
         <div class="card-body">
-            <h5 class="card-title text-muted">Contenido del Artefacto</h5>
-            <hr>
+            <h5 class="card-header bg-info text-white">Contenido del Artefacto</h5>
             <div class="p-4 bg-light rounded shadow-sm">
-              {% if artefacto.titulo == "Historia de Usuario" %}
-                {% with lineas=artefacto.contenido|linebreaksbr %}
-                  {% for linea in artefacto.contenido.splitlines %}
-                        {% if "Nombre:" in linea %}
-                        <p><strong>{{ linea }}</strong></p>
-                        {% elif "Prioridad:" in linea %}
-                        <p><strong>{{ linea }}</strong></p>
-                        {% elif "Descripción:" in linea %}
-                        <p><strong>{{ linea }}</strong></p>
-                        {% else %}
-                        <p>{{ linea }}</p>
-                    {% endif %}
-                  {% endfor %}
-                {% endwith %}
-              {% else %}
-                <pre class="fs-6" style="white-space: pre-line;">{{ artefacto.contenido }}</pre>
-              {% endif %}
+              <div class="card-body"><pre class="fs-6" style="white-space: pre-wrap; line-height: 1.8em; max-height: 300px; overflow-y: auto;">{{ artefacto.contenido }}</pre></div>
             </div>
-
+              {# Esto es opcional y solo visible para ti como desarrollador #}
+              {% if artefacto.contexto %}
+                <div class="card mt-3 border-info">
+                    <h5 class="card-header bg-info text-white">Requisitos extraídos automáticamente</h5>
+                    <div class="card-body"><pre class="fs-6" style="white-space: pre-wrap; line-height: 1.8em; max-height: 300px; overflow-y: auto;">{{ artefacto.contexto }}</pre></div>
+                </div>
+              {% endif %}
         </div>
     </div>
 
     {% if artefacto.titulo in "Diagrama de flujo Diagrama de clases Diagrama de Entidad-Relacion Diagrama de secuencia Diagrama de estado Diagrama de C4" %}
-    <div class="card p-3 my-4 shadow">
-        <h5 class="text-center text-muted">🧩 Diagrama generado</h5>
+    <div class="card p-3 my-4 shadow border-info">
+        <h5 class="text-center text-white bg-info">🧩 Diagrama generado</h5>
 
         <div class="text-end mb-3">
             <button onclick="descargardiagrama('svg')" class="btn btn-outline-primary btn-sm me-2">⬇️ SVG</button>
@@ -68,28 +54,6 @@
 
     </div>
     {% endif %}
-</div>
-
-<div class="modal fade" id="modalEliminar" tabindex="-1" aria-labelledby="modalEliminarLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form method="post" action="{% url 'eliminar_artefacto' artefacto.id %}">
-        {% csrf_token %}
-        <div class="modal-header bg-danger text-white">
-          <h5 class="modal-title" id="modalEliminarLabel">Confirmar eliminación</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          ¿Estás seguro de que deseas eliminar este artefacto?
-          <br><strong>{{ artefacto.titulo }}</strong>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-danger">Eliminar definitivamente</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>
 
 <script>

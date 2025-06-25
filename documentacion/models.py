@@ -62,6 +62,7 @@ class Artefacto(models.Model):
     tipo = models.CharField(max_length=4, choices=TIPO_CHOICES)
     titulo = models.CharField(max_length=100)
     contenido = models.TextField()
+    contexto = models.TextField(blank=True, null=True)  # Nuevo campo para requisitos
     generado_por_ia = models.BooleanField(default=True)
     creado = models.DateTimeField(auto_now_add=True)
     actualizado = models.DateTimeField(auto_now=True)
@@ -71,11 +72,12 @@ class Artefacto(models.Model):
         verbose_name = "Artefacto"
         verbose_name_plural = "Artefactos"
 
+    def __str__(self):
+        return f"{self.titulo} [{self.get_tipo_display()}]"
+    
     def save(self, *args, **kwargs):
         # Autoasigna fase del subartefacto si no está definido
         if self.subartefacto and not self.fase:
             self.fase = self.subartefacto.fase
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.titulo} [{self.get_tipo_display()}]"
+        

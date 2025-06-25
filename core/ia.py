@@ -120,27 +120,56 @@ PROMPTS = {
     ),
 
     "Diagrama de C4": lambda texto: (
-        "Eres un ingeniero de software experto en modelado arquitectónico. Tu tarea es generar un diagrama C4 de nivel Contexto en sintaxis Mermaid usando la notación `C4Context`.\n\n"
-        f"Basado en el siguiente texto del proyecto:\n{texto}\n\n"
-        "Reglas para generar el código:\n"
-        "- Comienza con `C4Context`\n"
-        "- No uses la palabra `mermaid` ni el bloque de backticks (```) en ningún momento\n"
-        "- Declara los elementos primero: `Person`, `System`, `System_Ext` (sin anidamientos)\n"
-        "- Luego declara las relaciones con `Rel(...)` o `BiRel(...)`, siempre por fuera, nunca dentro de `Person` o `System`\n"
-        "- Si usas `Enterprise_Boundary`, asegúrate de abrir `{` y cerrar `}` correctamente (sin llaves de más)\n"
-        "- El código debe ser válido para Mermaid.js sin errores de sintaxis\n"
-        "- Incluye etiquetas, descripciones y estilos si aporta claridad, pero manténlo legible\n\n"
-        "Ejemplo válido:\n"
-        "C4Context\n"
-        "    Person(admin, \"Administrador\", \"Gestiona el sistema\")\n"
-        "    System(sistema_web, \"Sistema Web\", \"Permite registrar y consultar datos\")\n"
-        "    BiRel(admin, sistema_web, \"Usa\")\n"
-        "    Enterprise_Boundary(empresa, \"Empresa\") {\n"
-        "        Person(cliente, \"Cliente\", \"Utiliza la plataforma\")\n"
-        "        System(servicio_api, \"API\", \"Expone funcionalidades REST\")\n"
-        "        Rel(cliente, servicio_api, \"Consume\")\n"
-        "    }"
+        "Eres un arquitecto de software experto en modelado C4. Genera un diagrama C4 en sintaxis Mermaid basado en el siguiente texto:\n\n"
+        f"{texto}\n\n"
+        "Reglas técnicas:\n"
+        "- Determina el tipo de diagrama necesario (Contexto, Contenedor, Componente, Dinámico o Implementación) según el contenido\n"
+        "- Usa las palabras clave correctas según el tipo:\n"
+        "  * Contexto: `C4Context`\n"
+        "  * Contenedor: `C4Container`\n"
+        "  * Componente: `C4Component`\n"
+        "  * Dinámico: `C4Dynamic`\n"
+        "  * Implementación: `C4Deployment`\n"
+        "- Estructura básica por tipo:\n"
+        "  CONTEXTO: Person/System + Rel/BiRel + Enterprise_Boundary\n"
+        "  CONTENEDOR: System_Boundary + Container + Rel\n"
+        "  COMPONENTE: Container_Boundary + Component + Rel\n"
+        "  DINÁMICO: participant + secuencias con ->\n"
+        "  IMPLEMENTACIÓN: Deployment_Node + relaciones\n"
+        "- Mantén nombres en mayúsculas sin espacios: `SISTEMA_WEB` no `Sistema Web`\n"
+        "- Para relaciones usa: `Rel(Origen, Destino, \"Etiqueta\")` o `BiRel()`\n"
+        "- Evita backticks (```\n"
+        "- Ejemplos válidos:\n"
+        "  C4Context:\n"
+        "    Person(admin, \"Admin\", \"Gestiona\")\n"
+        "    System(sistema, \"Sistema\", \"Procesa datos\")\n"
+        "    BiRel(admin, sistema, \"Usa\")\n\n"
+        "  C4Container:\n"
+        "    System_Boundary(app, \"Aplicación\") {\n"
+        "        Container(web, \"Frontend\", \"React\")\n"
+        "        Container(api, \"Backend\", \"Node.js\")\n"
+        "    }\n"
+        "    Rel(web, api, \"Consume\", \"HTTPS\")\n\n"
+        "  C4Component:\n"
+        "    Container_Boundary(api, \"API\") {\n"
+        "        Component(auth, \"Autenticación\", \"JWT\")\n"
+        "        Component(db, \"Persistencia\", \"SQL\")\n"
+        "    }\n"
+        "    Rel(auth, db, \"Consulta\")\n\n"
+        "  C4Dynamic:\n"
+        "    participant cliente as \"Cliente\"\n"
+        "    participant sistema as \"Sistema\"\n"
+        "    cliente->sistema: Solicitud\n"
+        "    sistema-->cliente: Respuesta\n\n"
+        "  C4Deployment:\n"
+        "    Deployment_Node(servidor, \"Servidor AWS\", \"Ubuntu\")\n"
+        "    Deployment_Node(contenedor, \"Docker\", \"Nginx\") {\n"
+        "        Container(app, \"Aplicación\")\n"
+        "    }\n"
+        "    Rel(contenedor, servidor, \"Ejecuta en\")\n"
+        "- Devuelve SOLO el código Mermaid válido, sin explicaciones"
     ),
+
         
     "caja negra": lambda nombre_proyecto, descripcion: (
         "Genera casos de prueba de caja negra detallados basados en el siguiente texto o historias de usuario:\n\n"
@@ -187,3 +216,16 @@ def generar_subartefacto_con_prompt(tipo: str, **kwargs) -> str:
     prompt_func = PROMPTS[tipo]
     prompt = prompt_func(**kwargs)
     return _generar_contenido(prompt)
+#=====  codigo de extrae reqquisitos de la HU=======
+def extraer_requisitos(historia_texto: str) -> str:
+    prompt = (
+        "Eres un ingeniero de software especializado en análisis de requisitos.\n"
+        "Dada la siguiente lista de historias de usuario, cada una identificada con HU y su número secuencial:\n"
+        f"{historia_texto}\n"
+        "Extrae exactamente los requisitos funcionales clave para cada historia de usuario. "
+        "Enumera cada requisito como RF (Requisito Funcional) seguido del número secuencial correspondiente (por ejemplo, RF1, RF2, etc.).\n"
+        "Cada requisito debe ser claro, específico y estar redactado en tercera persona.\n"
+        "Devuelve únicamente la lista de requisitos, uno por línea, sin títulos, numeración adicional ni explicaciones."
+    )
+    return _generar_contenido(prompt)
+
