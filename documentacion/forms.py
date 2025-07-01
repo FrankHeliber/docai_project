@@ -11,7 +11,9 @@ ARTEFACTOS_MERMAID = [
     "Diagrama de Entidad-Relacion",
     "Diagrama de secuencia",
     "Diagrama de estado",
-    "Diagrama de C4"
+    "Diagrama de C4-contexto", 
+    "Diagrama de C4-contenedor", 
+    "Diagrama de C4-implementación"
 ]
 
 # Función para detectar contenido repetitivo o no coherente
@@ -181,7 +183,7 @@ class ArtefactoForm(forms.ModelForm):
             return 'DISE'
         elif titulo in ("diagrama de secuencia", "diagrama de estado"):
             return 'DEVS'
-        elif titulo == "diagrama de c4":
+        elif titulo in ("diagrama de c4-contexto", "diagrama de c4-contenedor", "diagrama de c4-implementación"):
             return 'DESP'
         else:
             raise ValidationError("Título no reconocido para asignar tipo automáticamente.")
@@ -205,7 +207,7 @@ class ArtefactoForm(forms.ModelForm):
                 self.initial['tipo'] = 'DISE'
             elif titulo in ("diagrama de secuencia", "diagrama de estado"):
                 self.initial['tipo'] = 'DEVS'
-            elif titulo == "diagrama de c4":
+            elif titulo in ("diagrama de c4-contexto", "diagrama de c4-contenedor", "diagrama de c4-implementación"):
                 self.initial['tipo'] = 'DESP'
 
 # ===== registarse  y loguearse  ============

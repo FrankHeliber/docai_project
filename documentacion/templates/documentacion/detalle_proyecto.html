@@ -49,7 +49,7 @@
 
                 <div class="card-body">
                     {% if fase.subartefactos.all %}
-                        {% for sub in fase.subartefactos.all %}
+                        {% for sub in fase.subartefactos_ordenados %}
                         <div class="d-grid gap-2 mb-2">
                             {% if sub.nombre == "Historia de Usuario" or hu_con_requisitos %}
                                 <a href="{% url 'generar_artefacto' proyecto.id sub.nombre %}" class="btn btn-outline-info btn-sm">

@@ -1,9 +1,12 @@
 from django.urls import path
 from . import views
 from django.views.generic import TemplateView
+from django.contrib.auth import views as auth_views
+from documentacion.views import login_view
 
 
 urlpatterns = [
+    path('login/', views.login_view, name='login'),#para el loguin
     path('', TemplateView.as_view(template_name='home.html'), name='home'),# pantilla de inicio 
     path('dashboard/', views.dashboard, name='dashboard'),# plantilla de dashboard
     path('proyecto/nuevo/', views.crear_proyecto, name='crear_proyecto'),# pantilla de crear proyecto

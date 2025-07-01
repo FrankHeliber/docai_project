@@ -3,7 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate,login, logout
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponse
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
+#from django.contrib.auth.models import User
 from .models import Project, Artefacto, Fase, SubArtefacto
 from .forms import ProjectForm, ArtefactoForm, CustomUserCreationForm
 from core.ia import generar_subartefacto_con_prompt, extraer_requisitos, _generar_contenido, PROMPTS
@@ -23,7 +25,9 @@ ARTEFACTOS_MERMAID = [
     "Diagrama de Entidad-Relacion",
     "Diagrama de secuencia",
     "Diagrama de estado",
-    "Diagrama de C4"
+    "Diagrama de C4-contexto", # se agrego
+    "Diagrama de C4-contenedor", #se agrego
+    "Diagrama de C4-implementación" #se agrego
 ]
 
 ARTEFACTOS_VALIDOS = set(ARTEFACTOS_TEXTO + ARTEFACTOS_MERMAID)
@@ -61,7 +65,7 @@ def crear_proyecto(request):
                 "Diseño": ["Diagrama de clases", "Diagrama de Entidad-Relacion"],
                 "Desarrollo": ["Diagrama de secuencia", "Diagrama de estado"],
                 "Pruebas": ["caja negra", "smoke"],
-                "Despliegue": ["Diagrama de C4"]
+                "Despliegue": ["Diagrama de C4-contexto", "Diagrama de C4-contenedor","Diagrama de C4-implementación" ] #se creo 3 botones C4
             }
 
             for nombre_fase, subartefactos in fases_con_subartefactos.items():
@@ -94,7 +98,7 @@ def eliminar_proyecto(request, proyecto_id):
     proyecto.delete()
     return redirect('dashboard')
 
-# ===================== REGISTRO Y SESIÓN =====================
+# ===================== REGISTRO =====================
 
 def signup(request):
     if request.method == 'POST':
@@ -130,7 +134,36 @@ def cerrar_sesion(request):
 @login_required
 def detalle_proyecto(request, proyecto_id):
     proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
-    fases = proyecto.fases.prefetch_related('subartefactos')
+    #fases = proyecto.fases.prefetch_related('subartefactos')
+    # Orden deseado de fases
+    orden_deseado = [
+        "Análisis Requisitos",
+        "Diseño",
+        "Desarrollo",
+        "Pruebas",
+        "Despliegue"
+    ]
+    # Obtener fases y ordenarlas según la lista
+    fases_queryset = proyecto.fases.prefetch_related('subartefactos').all()
+    fases = sorted(fases_queryset, key=lambda f: orden_deseado.index(f.nombre) if f.nombre in orden_deseado else 999)
+
+    # Orden personalizado de subartefactos por fase
+    orden_subartefactos = {
+        "Análisis Requisitos": ["Historia de Usuario", "Diagrama de flujo"],
+        "Diseño": ["Diagrama de clases", "Diagrama de Entidad-Relacion"],
+        "Desarrollo": ["Diagrama de secuencia", "Diagrama de estado"],
+        "Pruebas": ["caja negra", "smoke"],
+        "Despliegue": ["Diagrama de C4-contexto", "Diagrama de C4-contenedor", "Diagrama de C4-implementación"]
+    }
+
+    # Reordenar los subartefactos dentro de cada fase
+    for fase in fases:
+        orden = orden_subartefactos.get(fase.nombre, [])
+        fase.subartefactos_ordenados = sorted(
+            fase.subartefactos.all(),
+            key=lambda s: orden.index(s.nombre) if s.nombre in orden else 999
+        )
+
     artefactos = proyecto.artefactos.select_related('fase', 'subartefacto')
 
     #=======  Buscar HU y verificar si tiene requisitos ===================
@@ -299,6 +332,8 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
     proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
     subartefacto = get_object_or_404(SubArtefacto, fase__proyecto=proyecto, nombre=subartefacto_nombre)
 
+# ===== BLOQUEO: si no se ha generado la HU con requisitos, no se permite generar otros artefactos=====
+
     if subartefacto.nombre not in ARTEFACTOS_VALIDOS:
         return JsonResponse({"error": "Tipo de artefacto inválido."}, status=400)
      # Validar si se requiere Historia de Usuario primero
@@ -309,21 +344,8 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
     if subartefacto.nombre not in ARTEFACTOS_TEXTO and not hu_con_requisitos:
         messages.warning(request, "⚠️ Primero debes generar la Historia de Usuario con requisitos antes de crear este tipo de artefacto.")
         return redirect('detalle_proyecto', proyecto_id=proyecto.id)
+     # === hasta aqui el nuevo codigo de bloquero ===========================
     
-    # ===== BLOQUEO: si no se ha generado la HU con requisitos, no se permite generar otros artefactos=====
-    #if subartefacto.nombre not in ["Historia de Usuario"]:
-    #    historia = Artefacto.objects.filter(
-    #        proyecto=proyecto,
-    #        titulo__iexact="Historia de Usuario"
-    #    ).first()
-    #    if not historia or not historia.contexto:
-    #        messages.error(
-    #            request,
-    #            "⚠️ Primero debes generar la Historia de Usuario con sus requisitos antes de generar este artefacto."
-    #        )
-    #        return redirect('detalle_proyecto', proyecto_id=proyecto.id)
-    # === hasta aqui el nuevo codigo de bloquero ========================================================
-
     artefacto_existente = Artefacto.objects.filter(
         proyecto=proyecto,
         titulo=subartefacto.nombre
@@ -427,7 +449,9 @@ def descargar_diagrama(request, artefacto_id):
         "Diagrama de Entidad-Relacion",
         "Diagrama de secuencia",
         "Diagrama de estado",
-        "Diagrama de C4"
+        "Diagrama de C4-contexto", # se agrego
+        "Diagrama de C4-contenedor", #se agrego
+        "Diagrama de C4-implementación" #se agrego
     ]
     if artefacto.titulo not in diagramas_validos:
         return HttpResponse("Este artefacto no es un diagrama válido para descarga.", status=400)
@@ -436,3 +460,17 @@ def descargar_diagrama(request, artefacto_id):
     response = HttpResponse(artefacto.contenido, content_type='text/plain')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+# ===================== login =====================
+
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            login(request, form.get_user())
+            return redirect('dashboard')
+        else:
+            messages.error(request, "⚠️ Usuario o contraseña incorrectos.")
+    else:
+        form = AuthenticationForm()
+    return render(request, 'registration/login.html', {'form': form})
