@@ -34,7 +34,9 @@
                         <li><a class="dropdown-item btn btn-primary ms-2" href="{% url 'dashboard' %}">📋 Panel</a></li>
                         <li><a class="dropdown-item" href="{% url 'password_change' %}">🔑 Cambiar contraseña</a></li>
                         <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item btn btn-primary ms-2" href="{% static 'manual/manual_usuario.pdf' %}" target="_blank">❓Ayuda</a></li>
                         <li><a class="dropdown-item text-danger btn btn-primary ms-2" href="{% url 'logout' %}">🔐 Cerrar sesión</a></li>
+                        
                         </ul>
                     </div>
                     {% else %}
