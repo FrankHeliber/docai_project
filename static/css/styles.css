@@ -14,7 +14,7 @@ body {
   100% { background-position: 0% 50%; }
 }
 
-/* Animación hover para tarjetas */
+/* Animación flotar para tarjetas */
 .card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border-radius: 1rem;
@@ -32,7 +32,7 @@ body {
   border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
-/* Botones modernos */
+/* Botones */
 .btn {
     border-radius: 0.75rem;
     transition: all 0.3s ease-in-out;
@@ -58,7 +58,7 @@ footer {
   font-size: 14px;
 }
 
-/* Formularios elegantes */
+/* Formularios */
 .form-control, .form-select {
   border-radius: 0.5rem;
   box-shadow: none;
@@ -89,7 +89,7 @@ footer {
   color: #666;
 }
 
-/* Tabla elegante si usas alguna */
+/* Tabla */
 .table-hover tbody tr:hover {
   background-color: #f1f9ff;
 }

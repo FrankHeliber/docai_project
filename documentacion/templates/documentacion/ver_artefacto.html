@@ -39,15 +39,14 @@
         <h5 class="text-center text-white bg-info">🧩 Diagrama generado</h5>
 
         <div class="text-end mb-3">
-            <button onclick="descargardiagrama('svg')" class="btn btn-outline-primary btn-sm me-2">⬇️ SVG</button>
+            <button onclick="descargardiagrama('svg')" class="btn btn-outline-success btn-sm me-2">⬇️ SVG</button>
             <button onclick="descargardiagrama('jpg')" class="btn btn-outline-success btn-sm me-2">⬇️ JPG</button>
-            <a href="{% url 'descargar_diagrama' artefacto.id %}" class="btn btn-outline-secondary btn-sm">⬇️ MMD</a>
+            <a href="{% url 'descargar_diagrama' artefacto.id %}" class="btn btn-outline-success btn-sm">⬇️ MMD</a>
         </div>
 
         <div class="mermaid" id="mermaid-container">
           {{ artefacto.contenido|safe }}
         </div>
-        <!-- Guardamos el texto Mermaid puro (sin procesar) en un <script>--> 
         <script id="mermaid-code" type="text/plain">
           {{ artefacto.contenido|safe }}
         </script>
@@ -63,7 +62,6 @@
     fecha: "{{ artefacto.creado|date:'Y-m-d' }}"
   };
 </script>
-<!--<script src="https://cdn.jsdelivr.net/npm/canvg@4.0.3/dist/index.js"></script>-->
 
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
@@ -100,29 +98,29 @@
 
     if (formato === "jpg") {
       try {
-        // Tomamos el SVG renderizado del DOM
+        
         const svgElement = document.querySelector(".mermaid svg");
         if (!svgElement) {
           alert("❌ No se encontró el SVG renderizado.");
           return;
         }
 
-        // Serializamos el SVG completo correctamente
+       
         let svgString = new XMLSerializer().serializeToString(svgElement);
 
-        // Añadimos el xmlns si no está
+       
         if (!svgString.includes("xmlns=\"http://www.w3.org/2000/svg\"")) {
           svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
         }
 
-        // Codificamos en base64 para evitar errores CORS
+        
         const svgBase64 = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
 
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = function () {
           const canvas = document.createElement("canvas");
-          canvas.width = img.width * 9;   // Escalado para más calidad
+          canvas.width = img.width * 9; 
           canvas.height = img.height * 9;
           const ctx = canvas.getContext("2d");
 
@@ -131,7 +129,7 @@
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-          // Exportamos como JPG
+          // Exportar como JPG
           canvas.toBlob((blob) => {
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);

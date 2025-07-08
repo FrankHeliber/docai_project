@@ -19,10 +19,8 @@ from django.urls import path, include
 from documentacion import views as doc_views
 urlpatterns = [
     path('admin/', admin.site.urls),
-    #path('accounts/', include('users.urls')),  # Si tienes autenticación personalizada
-    path('accounts/', include('django.contrib.auth.urls')),  # 🔥 esto es importante
-    #path('proyectos/', views.lista_proyectos, name='lista_proyectos'),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('signup/', doc_views.signup, name='signup'),
-    path('accounts/', include('allauth.urls')),  # 👈 Ruta para login, registro, etc.
-    path('', include('documentacion.urls')),   # Ruta principal de tu app
+    path('accounts/', include('allauth.urls')),
+    path('', include('documentacion.urls')),
 ]

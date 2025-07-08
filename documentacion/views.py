@@ -5,7 +5,6 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
-#from django.contrib.auth.models import User
 from .models import Project, Artefacto, Fase, SubArtefacto
 from .forms import ProjectForm, ArtefactoForm, CustomUserCreationForm
 from core.ia import generar_subartefacto_con_prompt, extraer_requisitos, _generar_contenido, PROMPTS
@@ -25,9 +24,9 @@ ARTEFACTOS_MERMAID = [
     "Diagrama de Entidad-Relacion",
     "Diagrama de secuencia",
     "Diagrama de estado",
-    "Diagrama de C4-contexto", # se agrego
-    "Diagrama de C4-contenedor", #se agrego
-    "Diagrama de C4-implementación" #se agrego
+    "Diagrama de C4-contexto",
+    "Diagrama de C4-contenedor",
+    "Diagrama de C4-implementación"
 ]
 
 ARTEFACTOS_VALIDOS = set(ARTEFACTOS_TEXTO + ARTEFACTOS_MERMAID)
@@ -91,6 +90,7 @@ def editar_proyecto(request, pk):
         form = ProjectForm(instance=proyecto)
     return render(request, 'documentacion/editar_proyecto.html', {'form': form, 'proyecto': proyecto})
 
+# ===================== ELIMINAR PROYECTO =====================
 @require_POST
 @login_required
 def eliminar_proyecto(request, proyecto_id):
@@ -98,7 +98,7 @@ def eliminar_proyecto(request, proyecto_id):
     proyecto.delete()
     return redirect('dashboard')
 
-# ===================== REGISTRO =====================
+# ===================== REGISTRO USUARIO=====================
 
 def signup(request):
     if request.method == 'POST':
@@ -134,8 +134,6 @@ def cerrar_sesion(request):
 @login_required
 def detalle_proyecto(request, proyecto_id):
     proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
-    #fases = proyecto.fases.prefetch_related('subartefactos')
-    # Orden deseado de fases
     orden_deseado = [
         "Análisis Requisitos",
         "Diseño",
@@ -143,11 +141,10 @@ def detalle_proyecto(request, proyecto_id):
         "Pruebas",
         "Despliegue"
     ]
-    # Obtener fases y ordenarlas según la lista
+    
     fases_queryset = proyecto.fases.prefetch_related('subartefactos').all()
     fases = sorted(fases_queryset, key=lambda f: orden_deseado.index(f.nombre) if f.nombre in orden_deseado else 999)
 
-    # Orden personalizado de subartefactos por fase
     orden_subartefactos = {
         "Análisis Requisitos": ["Historia de Usuario", "Diagrama de flujo"],
         "Diseño": ["Diagrama de clases", "Diagrama de Entidad-Relacion"],
@@ -156,7 +153,6 @@ def detalle_proyecto(request, proyecto_id):
         "Despliegue": ["Diagrama de C4-contexto", "Diagrama de C4-contenedor", "Diagrama de C4-implementación"]
     }
 
-    # Reordenar los subartefactos dentro de cada fase
     for fase in fases:
         orden = orden_subartefactos.get(fase.nombre, [])
         fase.subartefactos_ordenados = sorted(
@@ -169,16 +165,15 @@ def detalle_proyecto(request, proyecto_id):
     #=======  Buscar HU y verificar si tiene requisitos ===================
     hu = artefactos.filter(titulo__iexact="Historia de Usuario").first()
     hu_con_requisitos = hu and hu.contexto and hu.contexto.strip() != ""
-    #==== hasta aqui verificacion si tiene requisitos =======================
-
+    
     return render(request, 'documentacion/detalle_proyecto.html', {
         'proyecto': proyecto,
         'fases': fases,
         'artefactos': artefactos,
-        'hu_con_requisitos': hu_con_requisitos  #  **bandera para el template
+        'hu_con_requisitos': hu_con_requisitos
     })
 
-# ===================== CREAR EDITAR Y ELIMINAR ARTEFACTOS =====================
+# ===================== CREAR Y EDITA ARTEFACTOS =====================
 
 @login_required
 def crear_artefacto(request, proyecto_id):
@@ -230,10 +225,9 @@ def editar_artefacto(request, artefacto_id):
         if form.is_valid():
             if regenerar:
                 try:
-                    # actualiza título desde el formulario antes de regenerar
                     artefacto.titulo = form.cleaned_data['titulo']
-                    artefacto.tipo = form.cleaned_data['tipo']  # se guarda el tipo
-                    #====== desde aqui se modifico para regenerar HU y requisitos=====
+                    artefacto.tipo = form.cleaned_data['tipo'] 
+                    
                     if artefacto.titulo.lower() == "historia de usuario":
                         contenido = generar_subartefacto_con_prompt(
                             tipo="Historia de Usuario",
@@ -244,7 +238,7 @@ def editar_artefacto(request, artefacto_id):
                         artefacto.generado_por_ia = True
 
                         try:
-                            from core.ia import extraer_requisitos  # Asegúrate de tener esto importado
+                            from core.ia import extraer_requisitos  
                             requisitos = extraer_requisitos(contenido)
                             artefacto.contexto = requisitos
                         except Exception as e:
@@ -263,16 +257,16 @@ def editar_artefacto(request, artefacto_id):
                     import traceback
                     artefacto.contenido = f"[ERROR IA] {str(e)}\n{traceback.format_exc()}"
                     messages.error(request, '❌ Error al regenerar el contenido con IA.')
-                #==== hasta aqui se modifico para regenerar HU y Requisitos================
+                
             else:
-                # actualizar solo si no se va a regenerar
+                
                 artefacto = form.save(commit=False)
                 messages.success(request, '💾 Artefacto actualizado correctamente.')
 
             artefacto.save()
             return redirect('ver_artefacto', artefacto_id=artefacto.id)
         else:
-            print("❌ Errores de validación:", form.errors)  # 👈 Para debugging
+            print("❌ Errores de validación:", form.errors) 
             messages.error(request, '❌ Corrige los errores en el formulario.')
 
 
@@ -284,8 +278,7 @@ def editar_artefacto(request, artefacto_id):
         'artefacto': artefacto
     })
 
-#para eliminar artefacto
-#@require_POST
+# ===================== ELIMINAR ARTEFACTOS =====================
 @login_required
 def eliminar_artefacto(request, artefacto_id):
     artefacto = get_object_or_404(Artefacto, id=artefacto_id, proyecto__propietario=request.user)
@@ -294,14 +287,13 @@ def eliminar_artefacto(request, artefacto_id):
     messages.success(request, "Artefacto eliminado correctamente.")
     return redirect('detalle_proyecto', proyecto_id=proyecto_id)
 
-
 # ===================== VER ARTEFACTOS =====================
 
 @login_required
 def ver_artefacto(request, artefacto_id):
     artefacto = get_object_or_404(Artefacto, id=artefacto_id)
     is_mermaid = artefacto.titulo in ARTEFACTOS_MERMAID
-    #===== este codigo fue agregado para los diagramas ========
+    
     if artefacto.titulo.lower() in PROMPTS and artefacto.titulo.lower() in ARTEFACTOS_MERMAID:
         try:
             texto_diagrama = artefacto.contexto if artefacto.contexto else artefacto.contenido
@@ -309,21 +301,11 @@ def ver_artefacto(request, artefacto_id):
             mermaid_code = _generar_contenido(prompt)
         except Exception as e:
             mermaid_code = f"[ERROR AL GENERAR DIAGRAMA] {str(e)}"
-    #====== hasta aqui se agrego el codigo ======================
+    
     return render(request, 'documentacion/ver_artefacto.html', {
         'artefacto': artefacto,
         'is_mermaid': is_mermaid,
-        #'mermaid_code': mermaid_code
     })
-
-#@login_required
-#def ver_artefacto2(request, artefacto_id):
-#    artefacto = get_object_or_404(Artefacto, id=artefacto_id, proyecto__propietario=request.user)
-#    is_mermaid = artefacto.titulo in ARTEFACTOS_MERMAID
-#    return render(request, 'documentacion/ver_artefacto2.html', {
-#        'artefacto': artefacto,
-#        'is_mermaid': is_mermaid
-#    })
 
 # ===================== IA GENERACIÓN AUTOMÁTICA ARTEFACTOS Y SUBARTEFACTOS =====================
 
@@ -332,11 +314,9 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
     proyecto = get_object_or_404(Project, id=proyecto_id, propietario=request.user)
     subartefacto = get_object_or_404(SubArtefacto, fase__proyecto=proyecto, nombre=subartefacto_nombre)
 
-# ===== BLOQUEO: si no se ha generado la HU con requisitos, no se permite generar otros artefactos=====
-
     if subartefacto.nombre not in ARTEFACTOS_VALIDOS:
         return JsonResponse({"error": "Tipo de artefacto inválido."}, status=400)
-     # Validar si se requiere Historia de Usuario primero
+    
     artefactos = Artefacto.objects.filter(proyecto=proyecto)
     hu = artefactos.filter(titulo__iexact="Historia de Usuario").first()
     hu_con_requisitos = hu and hu.contexto and hu.contexto.strip() != ""
@@ -344,8 +324,7 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
     if subartefacto.nombre not in ARTEFACTOS_TEXTO and not hu_con_requisitos:
         messages.warning(request, "⚠️ Primero debes generar la Historia de Usuario con requisitos antes de crear este tipo de artefacto.")
         return redirect('detalle_proyecto', proyecto_id=proyecto.id)
-     # === hasta aqui el nuevo codigo de bloquero ===========================
-    
+
     artefacto_existente = Artefacto.objects.filter(
         proyecto=proyecto,
         titulo=subartefacto.nombre
@@ -382,7 +361,6 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
         generado_por_ia=True
     )
 
-        # =====se agrego para extraer artefactos ======
     if artefacto.titulo.lower() == "historia de usuario":
             contenido = generar_subartefacto_con_prompt(
                 tipo="Historia de Usuario",
@@ -397,12 +375,12 @@ def generar_artefacto(request, proyecto_id, subartefacto_nombre):
                 requisitos = extraer_requisitos(contenido)
                 artefacto.contexto = requisitos
             except Exception as e:
-                artefacto.contexto = "[ERROR AL EXTRAER REQUISITOS]"  # fallback
+                artefacto.contexto = "[ERROR AL EXTRAER REQUISITOS]"
 
             artefacto.save()
             messages.success(request, "Historia de Usuario generada con requisitos.")
             return redirect('ver_artefacto', artefacto.id)
-            #===== hasta aqui se agrego el codigo extraer artefactos =====
+
     return redirect('ver_artefacto', artefacto_id=artefacto.id)
 
 @login_required
@@ -442,16 +420,15 @@ def generar_subartefacto_modal(request, proyecto_id):
 def descargar_diagrama(request, artefacto_id):
     artefacto = get_object_or_404(Artefacto, id=artefacto_id, proyecto__propietario=request.user)
     
-    # Verificar si es un tipo válido de diagrama
     diagramas_validos = [
         "Diagrama de flujo",
         "Diagrama de clases",
         "Diagrama de Entidad-Relacion",
         "Diagrama de secuencia",
         "Diagrama de estado",
-        "Diagrama de C4-contexto", # se agrego
-        "Diagrama de C4-contenedor", #se agrego
-        "Diagrama de C4-implementación" #se agrego
+        "Diagrama de C4-contexto",
+        "Diagrama de C4-contenedor",
+        "Diagrama de C4-implementación"
     ]
     if artefacto.titulo not in diagramas_validos:
         return HttpResponse("Este artefacto no es un diagrama válido para descarga.", status=400)
@@ -461,7 +438,7 @@ def descargar_diagrama(request, artefacto_id):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
-# ===================== login =====================
+# ===================== LOGIN =====================
 
 def login_view(request):
     if request.method == 'POST':

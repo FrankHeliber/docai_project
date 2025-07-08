@@ -13,11 +13,6 @@
             <form method="POST">
                 {% csrf_token %}
                 
-                <!--<div class="mb-3">
-                    <label for="id_tipo" class="form-label">Tipo de Artefacto</label>
-                    {{ form.tipo|add_class:"form-select" }}
-                </div>-->
-
                 <div class="mb-4">
                     <div class="form-control-plaintext">{{ form.titulo.value }}</div>
                 </div>

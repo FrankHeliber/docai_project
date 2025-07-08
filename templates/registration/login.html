@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('loginForm');
     const inputs = form.querySelectorAll('input');
 
-    // Función para validar un campo y mostrar feedback
+    // Función para validar un campo y mostrar comentario
     function validateInput(input) {
         if (input.checkValidity()) {
             input.classList.remove('is-invalid');
@@ -80,12 +80,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <style>
-/* ✅ Corrige espacio izquierdo de los inputs */
+
 .form-control {
-    padding-left: 0.75rem !important; /* o el valor que desees */
+    padding-left: 0.75rem !important;
 }
 
-/* ✅ Mueve el ícono de validación al lado derecho */
 .form-control.is-valid,
 .form-control.is-invalid {
     padding-right: 2.5rem !important;

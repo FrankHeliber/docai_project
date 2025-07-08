@@ -76,7 +76,6 @@ class Artefacto(models.Model):
         return f"{self.titulo} [{self.get_tipo_display()}]"
     
     def save(self, *args, **kwargs):
-        # Autoasigna fase del subartefacto si no está definido
         if self.subartefacto and not self.fase:
             self.fase = self.subartefacto.fase
         super().save(*args, **kwargs)

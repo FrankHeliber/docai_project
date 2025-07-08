@@ -88,6 +88,7 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         fields = ['nombre', 'descripcion']
+
 # ===== validadcion proyecto ============
     def clean_nombre(self):
         nombre = self.cleaned_data['nombre'].strip()
@@ -98,8 +99,6 @@ class ProjectForm(forms.ModelForm):
             raise forms.ValidationError("El nombre contiene caracteres inválidos.")
         if not texto_coherente(nombre):
             raise forms.ValidationError("El nombre debe ser una frase coherente y significativa.")
-
-        
         return nombre
 
     def clean_descripcion(self):
@@ -109,8 +108,6 @@ class ProjectForm(forms.ModelForm):
             raise forms.ValidationError("La descripción debe tener al menos 15 caracteres.")
         if not texto_coherente(descripcion):
             raise forms.ValidationError("La descripción debe tener sentido y estar bien redactada.")
-
-        
         return descripcion
 
 # ===== creacion y editar artefacto ============
@@ -131,8 +128,7 @@ class ArtefactoForm(forms.ModelForm):
         max_length=200,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            #'placeholder': 'Ingrese un título representativo'
-            'readonly': 'readonly'  # Desactiva edición desde el frontend
+            'readonly': 'readonly' 
         })
     )
 
@@ -190,12 +186,11 @@ class ArtefactoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Solo desactiva si es edición (hay instancia)
+        
         if self.instance and self.instance.pk:
             self.fields['titulo'].disabled = True
-            self.fields['tipo'].disabled = True  # No editable manualmente
+            self.fields['tipo'].disabled = True  
 
-             # Asignar tipo automático basado en el título solo al cargar
             titulo = self.instance.titulo.lower()
             if titulo == "historia de usuario":
                 self.initial['tipo'] = 'AREQ'
@@ -272,11 +267,9 @@ class CustomUserCreationForm(UserCreationForm):
         dominio = email.split('@')[1]
         nombre_dominio = dominio.split('.')[0]
 
-        # Evita dominios con solo una letra repetida, como gggggg
         if re.fullmatch(r'(.)\1{2,}', nombre_dominio):
             raise ValidationError("El dominio no parece real. Usa uno válido como gmail.com o outlook.com.")
 
-        # Evita dominios con letras no significativas
         if len(nombre_dominio) < 4 or not any(letra in nombre_dominio for letra in 'aeiou'):
             raise ValidationError("El dominio debe ser coherente y reconocible.")
 

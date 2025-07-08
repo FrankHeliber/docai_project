@@ -14,11 +14,10 @@ urlpatterns = [
     path('proyecto/<int:proyecto_id>/', views.detalle_proyecto, name='detalle_proyecto'),#detalle de proyecto
     path('proyecto/<int:proyecto_id>/eliminar/', views.eliminar_proyecto, name='eliminar_proyecto'),#eliminar proyecto
     path('proyecto/<int:proyecto_id>/artefacto/nuevo/', views.crear_artefacto, name='crear_artefacto'),# crear artefacto
-    path('ver_artefacto/<int:artefacto_id>/', views.ver_artefacto, name='ver_artefacto'), #visializar el artefacto
+    path('ver_artefacto/<int:artefacto_id>/', views.ver_artefacto, name='ver_artefacto'), #ver el artefacto
     path('artefacto/editar/<int:artefacto_id>/', views.editar_artefacto, name='editar_artefacto'),# editar artefacto
-    #path('ver_artefacto2/<int:artefacto_id>/', views.ver_artefacto, name='ver_artefacto2'),  
     path('logout/', views.cerrar_sesion, name='logout'),  # Importante para cerrar sesión
-    path('proyecto/<int:proyecto_id>/generar/<str:subartefacto_nombre>/', views.generar_artefacto, name='generar_artefacto'),
+    path('proyecto/<int:proyecto_id>/generar/<str:subartefacto_nombre>/', views.generar_artefacto, name='generar_artefacto'),#generar artefactos
     path('artefacto/eliminar/<int:artefacto_id>/', views.eliminar_artefacto, name='eliminar_artefacto'),# eliminar artefacto
     path('artefacto/<int:artefacto_id>/descargar/', views.descargar_diagrama, name='descargar_diagrama'), #descaegar diagramas 
 
